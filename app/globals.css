@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl2 border border-line bg-white;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl2 px-4 py-2.5 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100;
+  }
+  .btn-brand {
+    @apply btn bg-brand text-white hover:bg-brand-dark;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-white text-ink hover:bg-paper;
+  }
+  .field {
+    @apply w-full rounded-xl2 border border-line bg-white px-3.5 py-2.5 outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium;
+  }
+}
+
+/* ---------- Impresión de etiquetas (Brother QL-820NWB / DK-2205 62mm) ---------- */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .label {
+    page-break-after: always;
+    break-after: page;
+  }
+  .label:last-child {
+    page-break-after: auto;
+  }
+}
+
+@page {
+  size: 62mm 75mm;
+  margin: 0;
+}
