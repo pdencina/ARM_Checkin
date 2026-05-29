@@ -1,49 +1,44 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { MIN_LABEL, type Child, type Guardian, type Ministerio } from "@/lib/types";
+import { MIN_COLOR, MIN_LABEL, type AuthorizedPickup, type Child, type Guardian, type Ministerio } from "@/lib/types";
 
 export default function FamiliasClient() {
   const supabase = createClient();
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [children, setChildren] = useState<Record<string, Child[]>>({});
-
+  const [pickups, setPickups] = useState<Record<string, AuthorizedPickup[]>>({});
+  const [childTab, setChildTab] = useState<Record<string, "info" | "medico" | "autorizados">>({});
   const [g, setG] = useState({ nombre: "", apellido: "", telefono: "", email: "" });
 
   async function loadGuardians() {
     const { data } = await supabase.from("guardians").select("*").order("apellido");
     setGuardians(data ?? []);
   }
-  useEffect(() => {
-    loadGuardians();
-  }, []);
+  useEffect(() => { loadGuardians(); }, []);
 
   async function addGuardian() {
     if (!g.nombre || !g.apellido) return;
-    await supabase.from("guardians").insert({
-      nombre: g.nombre,
-      apellido: g.apellido,
-      telefono: g.telefono || null,
-      email: g.email || null,
-    });
+    await supabase.from("guardians").insert({ nombre: g.nombre, apellido: g.apellido, telefono: g.telefono || null, email: g.email || null });
     setG({ nombre: "", apellido: "", telefono: "", email: "" });
     loadGuardians();
   }
 
   async function loadChildren(gid: string) {
-    const { data } = await supabase
-      .from("guardian_children")
-      .select("child:children(*)")
-      .eq("guardian_id", gid);
+    const { data } = await supabase.from("guardian_children").select("child:children(*)").eq("guardian_id", gid);
     setChildren((p) => ({ ...p, [gid]: (data ?? []).map((r: any) => r.child).filter(Boolean) }));
   }
 
-  function expand(gid: string) {
+  async function loadPickups(childId: string) {
+    const { data } = await supabase.from("authorized_pickups").select("*").eq("child_id", childId).eq("activo", true);
+    setPickups((p) => ({ ...p, [childId]: data ?? [] }));
+  }
+
+  async function expand(gid: string) {
     if (open === gid) return setOpen(null);
     setOpen(gid);
-    if (!children[gid]) loadChildren(gid);
+    if (!children[gid]) await loadChildren(gid);
   }
 
   return (
@@ -51,34 +46,53 @@ export default function FamiliasClient() {
       <h1 className="mb-5 text-2xl font-semibold">Familias</h1>
 
       <div className="card mb-6 p-5">
-        <p className="mb-3 font-medium">Nueva familia (tutor)</p>
+        <p className="mb-3 font-medium">Nueva familia</p>
         <div className="grid grid-cols-2 gap-2">
           <input className="field" placeholder="Nombre" value={g.nombre} onChange={(e) => setG({ ...g, nombre: e.target.value })} />
           <input className="field" placeholder="Apellido" value={g.apellido} onChange={(e) => setG({ ...g, apellido: e.target.value })} />
           <input className="field" placeholder="Teléfono" value={g.telefono} onChange={(e) => setG({ ...g, telefono: e.target.value })} />
-          <input className="field" placeholder="Email (opcional)" value={g.email} onChange={(e) => setG({ ...g, email: e.target.value })} />
+          <input className="field" placeholder="Email" value={g.email} onChange={(e) => setG({ ...g, email: e.target.value })} />
         </div>
-        <button className="btn-brand mt-3" onClick={addGuardian}>
-          Agregar familia
-        </button>
+        <button className="btn-brand mt-3" onClick={addGuardian}>Agregar familia</button>
       </div>
 
       <div className="space-y-2">
         {guardians.map((gu) => (
           <div key={gu.id} className="card overflow-hidden">
-            <button onClick={() => expand(gu.id)} className="flex w-full items-center justify-between px-5 py-3 text-left hover:bg-paper">
-              <span className="font-medium">
-                {gu.nombre} {gu.apellido}
-              </span>
+            <button onClick={() => expand(gu.id)} className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-paper">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-medium text-brand-dark">{gu.nombre.charAt(0)}{gu.apellido.charAt(0)}</div>
+              <span className="flex-1 font-medium">{gu.nombre} {gu.apellido}</span>
               <span className="text-sm text-muted">{gu.telefono}</span>
             </button>
+
             {open === gu.id && (
-              <div className="border-t border-line bg-paper/40 px-5 py-4">
-                <ChildList childrenList={children[gu.id] ?? []} />
-                <AddChild
-                  guardianId={gu.id}
-                  onAdded={() => loadChildren(gu.id)}
-                />
+              <div className="border-t border-line bg-paper/40 px-5 py-4 space-y-3">
+                {(children[gu.id] ?? []).map((c) => {
+                  const col = MIN_COLOR[c.ministerio];
+                  const tab = childTab[c.id] ?? "info";
+                  return (
+                    <div key={c.id} className="rounded-xl2 border border-line bg-white overflow-hidden">
+                      <div className={`flex items-center gap-2 px-4 py-2.5 ${col.bg}`}>
+                        <span className={`badge ${col.bg} ${col.text} border border-current text-xs`}>{MIN_LABEL[c.ministerio]}</span>
+                        <span className={`font-medium ${col.text}`}>{c.nombre} {c.apellido}</span>
+                        <div className="ml-auto flex gap-1">
+                          {(["info","medico","autorizados"] as const).map((t) => (
+                            <button key={t} onClick={() => { setChildTab((p) => ({ ...p, [c.id]: t })); if (t === "autorizados" && !pickups[c.id]) loadPickups(c.id); }}
+                              className={`rounded px-2 py-0.5 text-xs font-medium transition ${tab === t ? "bg-white shadow-sm" : "opacity-60 hover:opacity-100"}`}>
+                              {t === "info" ? "Info" : t === "medico" ? "Médico" : "Autorizados"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {tab === "info" && <ChildInfo child={c} onSave={() => loadChildren(gu.id)} />}
+                      {tab === "medico" && <ChildMedico child={c} onSave={() => loadChildren(gu.id)} />}
+                      {tab === "autorizados" && <ChildAutorizados child={c} pickups={pickups[c.id] ?? []} onSave={() => loadPickups(c.id)} />}
+                    </div>
+                  );
+                })}
+
+                <AddChild guardianId={gu.id} onAdded={() => loadChildren(gu.id)} />
               </div>
             )}
           </div>
@@ -88,75 +102,110 @@ export default function FamiliasClient() {
   );
 }
 
-function ChildList({ childrenList }: { childrenList: Child[] }) {
-  if (childrenList.length === 0) return <p className="mb-3 text-sm text-muted">Sin niños aún.</p>;
+function ChildInfo({ child, onSave }: { child: Child; onSave: () => void }) {
+  const supabase = createClient();
+  const [v, setV] = useState({ nombre: child.nombre, apellido: child.apellido, fecha_nacimiento: child.fecha_nacimiento ?? "", ministerio: child.ministerio, alergias: child.alergias ?? "" });
+  async function save() {
+    await supabase.from("children").update({ nombre: v.nombre, apellido: v.apellido, fecha_nacimiento: v.fecha_nacimiento || null, ministerio: v.ministerio, alergias: v.alergias || null }).eq("id", child.id);
+    onSave();
+  }
   return (
-    <div className="mb-3 space-y-1">
-      {childrenList.map((c) => (
-        <div key={c.id} className="flex items-center gap-2 text-sm">
-          <span className={`badge ${c.ministerio === "kids" ? "bg-kids-soft text-kids-ink" : "bg-tweens-soft text-tweens-ink"}`}>
-            {MIN_LABEL[c.ministerio]}
-          </span>
-          <span className="font-medium">
-            {c.nombre} {c.apellido}
-          </span>
-          {c.alergias && <span className="text-red-700">⚠️ {c.alergias}</span>}
-        </div>
-      ))}
+    <div className="grid grid-cols-2 gap-2 p-4">
+      <input className="field" placeholder="Nombre" value={v.nombre} onChange={(e) => setV({ ...v, nombre: e.target.value })} />
+      <input className="field" placeholder="Apellido" value={v.apellido} onChange={(e) => setV({ ...v, apellido: e.target.value })} />
+      <input className="field" type="date" value={v.fecha_nacimiento} onChange={(e) => setV({ ...v, fecha_nacimiento: e.target.value })} />
+      <select className="field" value={v.ministerio} onChange={(e) => setV({ ...v, ministerio: e.target.value as Ministerio })}>
+        <option value="kids">Kids</option>
+        <option value="tweens">Tweens</option>
+        <option value="sensorial">Sensorial</option>
+      </select>
+      <input className="field col-span-2" placeholder="Alergias" value={v.alergias} onChange={(e) => setV({ ...v, alergias: e.target.value })} />
+      <button className="btn-ghost col-span-2" onClick={save}>Guardar cambios</button>
+    </div>
+  );
+}
+
+function ChildMedico({ child, onSave }: { child: Child; onSave: () => void }) {
+  const supabase = createClient();
+  const [v, setV] = useState({ condiciones: child.condiciones ?? "", medicamentos: child.medicamentos ?? "", contacto_emergencia_nombre: child.contacto_emergencia_nombre ?? "", contacto_emergencia_telefono: child.contacto_emergencia_telefono ?? "" });
+  async function save() {
+    await supabase.from("children").update({ condiciones: v.condiciones || null, medicamentos: v.medicamentos || null, contacto_emergencia_nombre: v.contacto_emergencia_nombre || null, contacto_emergencia_telefono: v.contacto_emergencia_telefono || null }).eq("id", child.id);
+    onSave();
+  }
+  return (
+    <div className="grid grid-cols-2 gap-2 p-4">
+      <textarea className="field col-span-2 resize-none" rows={2} placeholder="Condiciones médicas" value={v.condiciones} onChange={(e) => setV({ ...v, condiciones: e.target.value })} />
+      <textarea className="field col-span-2 resize-none" rows={2} placeholder="Medicamentos" value={v.medicamentos} onChange={(e) => setV({ ...v, medicamentos: e.target.value })} />
+      <input className="field" placeholder="Contacto emergencia (nombre)" value={v.contacto_emergencia_nombre} onChange={(e) => setV({ ...v, contacto_emergencia_nombre: e.target.value })} />
+      <input className="field" placeholder="Teléfono emergencia" value={v.contacto_emergencia_telefono} onChange={(e) => setV({ ...v, contacto_emergencia_telefono: e.target.value })} />
+      <button className="btn-ghost col-span-2" onClick={save}>Guardar ficha médica</button>
+    </div>
+  );
+}
+
+function ChildAutorizados({ child, pickups, onSave }: { child: Child; pickups: AuthorizedPickup[]; onSave: () => void }) {
+  const supabase = createClient();
+  const [np, setNp] = useState({ nombre: "", apellido: "", telefono: "", parentesco: "" });
+  async function add() {
+    if (!np.nombre || !np.apellido) return;
+    await supabase.from("authorized_pickups").insert({ child_id: child.id, nombre: np.nombre, apellido: np.apellido, telefono: np.telefono || null, parentesco: np.parentesco || null });
+    setNp({ nombre: "", apellido: "", telefono: "", parentesco: "" });
+    onSave();
+  }
+  async function remove(id: string) {
+    await supabase.from("authorized_pickups").update({ activo: false }).eq("id", id);
+    onSave();
+  }
+  return (
+    <div className="p-4 space-y-3">
+      <div className="space-y-1.5">
+        {pickups.length === 0 && <p className="text-sm text-muted">Sin autorizados adicionales aún.</p>}
+        {pickups.map((p) => (
+          <div key={p.id} className="flex items-center gap-2 rounded-xl2 bg-paper px-3 py-2 text-sm">
+            <span className="font-medium">{p.nombre} {p.apellido}</span>
+            {p.parentesco && <span className="text-muted">· {p.parentesco}</span>}
+            {p.telefono && <span className="text-muted ml-auto">{p.telefono}</span>}
+            <button onClick={() => remove(p.id)} className="ml-2 text-red-600 hover:text-red-800 text-xs">✕</button>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2 border-t border-line pt-3">
+        <input className="field" placeholder="Nombre" value={np.nombre} onChange={(e) => setNp({ ...np, nombre: e.target.value })} />
+        <input className="field" placeholder="Apellido" value={np.apellido} onChange={(e) => setNp({ ...np, apellido: e.target.value })} />
+        <input className="field" placeholder="Teléfono" value={np.telefono} onChange={(e) => setNp({ ...np, telefono: e.target.value })} />
+        <input className="field" placeholder="Parentesco (ej. abuela)" value={np.parentesco} onChange={(e) => setNp({ ...np, parentesco: e.target.value })} />
+        <button className="btn-ghost col-span-2" onClick={add}>Agregar autorizado</button>
+      </div>
     </div>
   );
 }
 
 function AddChild({ guardianId, onAdded }: { guardianId: string; onAdded: () => void }) {
   const supabase = createClient();
-  const [c, setC] = useState({
-    nombre: "",
-    apellido: "",
-    fecha_nacimiento: "",
-    ministerio: "kids" as Ministerio,
-    alergias: "",
-  });
-
+  const [show, setShow] = useState(false);
+  const [c, setC] = useState({ nombre: "", apellido: "", fecha_nacimiento: "", ministerio: "kids" as Ministerio, alergias: "" });
   async function add() {
     if (!c.nombre || !c.apellido) return;
-    const { data: child, error } = await supabase
-      .from("children")
-      .insert({
-        nombre: c.nombre,
-        apellido: c.apellido,
-        fecha_nacimiento: c.fecha_nacimiento || null,
-        ministerio: c.ministerio,
-        alergias: c.alergias || null,
-      })
-      .select()
-      .single();
-    if (error || !child) return;
-    await supabase.from("guardian_children").insert({
-      guardian_id: guardianId,
-      child_id: child.id,
-      es_principal: true,
-    });
+    const { data: child } = await supabase.from("children").insert({ nombre: c.nombre, apellido: c.apellido, fecha_nacimiento: c.fecha_nacimiento || null, ministerio: c.ministerio, alergias: c.alergias || null }).select().single();
+    if (!child) return;
+    await supabase.from("guardian_children").insert({ guardian_id: guardianId, child_id: child.id, es_principal: true });
     setC({ nombre: "", apellido: "", fecha_nacimiento: "", ministerio: "kids", alergias: "" });
-    onAdded();
+    setShow(false); onAdded();
   }
-
+  if (!show) return <button className="btn-ghost w-full" onClick={() => setShow(true)}>+ Agregar niño</button>;
   return (
-    <div className="rounded-xl2 border border-line bg-white p-3">
-      <p className="mb-2 text-sm font-medium">Agregar niño</p>
-      <div className="grid grid-cols-2 gap-2">
-        <input className="field" placeholder="Nombre" value={c.nombre} onChange={(e) => setC({ ...c, nombre: e.target.value })} />
-        <input className="field" placeholder="Apellido" value={c.apellido} onChange={(e) => setC({ ...c, apellido: e.target.value })} />
-        <input className="field" type="date" value={c.fecha_nacimiento} onChange={(e) => setC({ ...c, fecha_nacimiento: e.target.value })} />
-        <select className="field" value={c.ministerio} onChange={(e) => setC({ ...c, ministerio: e.target.value as Ministerio })}>
-          <option value="kids">Kids</option>
-                <option value="sensorial">Sensorial</option>
-          <option value="tweens">Tweens</option>
-        </select>
-        <input className="field col-span-2" placeholder="Alergias (opcional)" value={c.alergias} onChange={(e) => setC({ ...c, alergias: e.target.value })} />
+    <div className="rounded-xl2 border border-line bg-white p-4 grid grid-cols-2 gap-2">
+      <input className="field" placeholder="Nombre" value={c.nombre} onChange={(e) => setC({ ...c, nombre: e.target.value })} />
+      <input className="field" placeholder="Apellido" value={c.apellido} onChange={(e) => setC({ ...c, apellido: e.target.value })} />
+      <input className="field" type="date" value={c.fecha_nacimiento} onChange={(e) => setC({ ...c, fecha_nacimiento: e.target.value })} />
+      <select className="field" value={c.ministerio} onChange={(e) => setC({ ...c, ministerio: e.target.value as Ministerio })}>
+        <option value="kids">Kids</option><option value="tweens">Tweens</option><option value="sensorial">Sensorial</option>
+      </select>
+      <input className="field col-span-2" placeholder="Alergias" value={c.alergias} onChange={(e) => setC({ ...c, alergias: e.target.value })} />
+      <div className="col-span-2 flex gap-2">
+        <button className="btn-brand flex-1" onClick={add}>Guardar niño</button>
+        <button className="btn-ghost" onClick={() => setShow(false)}>Cancelar</button>
       </div>
-      <button className="btn-ghost mt-2" onClick={add}>
-        Guardar niño
-      </button>
     </div>
   );
 }
