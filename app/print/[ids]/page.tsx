@@ -74,13 +74,15 @@ export default function PrintPage({ params }: { params: { ids: string } }) {
 
 const frame: React.CSSProperties = {
   width: "62mm",
-  minHeight: "62mm",
+  height: "80mm",
   boxSizing: "border-box",
   background: "#fff",
   margin: "0 auto 12px",
   overflow: "hidden",
   border: "2.5pt solid #000",
   borderRadius: "3mm",
+  display: "flex",
+  flexDirection: "column",
 };
 
 function ChildLabel({ row, fecha }: { row: Row; fecha: string }) {
@@ -119,7 +121,7 @@ function ChildLabel({ row, fecha }: { row: Row; fecha: string }) {
         <span style={{ fontSize: "9pt" }}>{fecha}</span>
       </div>
 
-      <div style={{ padding: "3mm 4mm 4mm", textAlign: "center" }}>
+      <div style={{ padding: "3mm 4mm 4mm", textAlign: "center", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ fontSize: "8pt", color: "#666", letterSpacing: "1px", textTransform: "uppercase" }}>
           Nombre
         </div>
@@ -174,7 +176,7 @@ function ParentLabel({
       <div style={{ background: "#000", color: "#fff", padding: "2.5mm 4mm", fontSize: "12pt", fontWeight: 700 }}>
         🎟 COMPROBANTE DE RETIRO
       </div>
-      <div style={{ padding: "3mm 4mm 4mm" }}>
+      <div style={{ padding: "3mm 4mm 4mm", flex: 1 }}>
         <div style={{ fontSize: "10pt", color: "#444", marginBottom: "2mm" }}>
           Familia {familia.apellido} · {fecha}
         </div>

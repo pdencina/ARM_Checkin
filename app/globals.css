@@ -42,8 +42,15 @@
     min-height: 0 !important;
   }
   .label {
+    width: 62mm !important;
+    height: 80mm !important;
+    min-height: 80mm !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-sizing: border-box;
     page-break-after: always;
     break-after: page;
+    overflow: hidden;
   }
   .label:last-child {
     page-break-after: auto;
@@ -51,6 +58,6 @@
 }
 
 @page {
-  size: 62mm 62mm;
+  size: 62mm 80mm;
   margin: 0;
 }
