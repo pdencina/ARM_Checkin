@@ -43,8 +43,8 @@
   }
   .label {
     width: 62mm !important;
-    height: 50mm !important;
-    min-height: 50mm !important;
+    height: 70mm !important;
+    min-height: 70mm !important;
     margin: 0 !important;
     border-radius: 0 !important;
     box-sizing: border-box;
@@ -58,6 +58,6 @@
 }
 
 @page {
-  size: 62mm 50mm;
+  size: 62mm 70mm;
   margin: 0;
 }

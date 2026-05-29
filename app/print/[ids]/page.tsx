@@ -69,7 +69,7 @@ export default function PrintPage({ params }: { params: { ids: string } }) {
 
 const frame: React.CSSProperties = {
   width: "62mm",
-  height: "50mm",
+  height: "70mm",
   boxSizing: "border-box",
   background: "#fff",
   margin: "0 auto 10px",
