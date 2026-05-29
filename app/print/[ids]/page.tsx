@@ -12,11 +12,6 @@ interface Row {
   guardian: { nombre: string; apellido: string };
 }
 
-const COLOR = {
-  kids: "#1D9E75",
-  tweens: "#7F77DD",
-};
-
 export default function PrintPage({ params }: { params: { ids: string } }) {
   const supabase = createClient();
   const [rows, setRows] = useState<Row[]>([]);
@@ -74,13 +69,13 @@ export default function PrintPage({ params }: { params: { ids: string } }) {
 
 const frame: React.CSSProperties = {
   width: "62mm",
-  height: "80mm",
+  height: "50mm",
   boxSizing: "border-box",
   background: "#fff",
-  margin: "0 auto 12px",
+  margin: "0 auto 10px",
   overflow: "hidden",
-  border: "2.5pt solid #000",
-  borderRadius: "3mm",
+  border: "2pt solid #000",
+  borderRadius: "2mm",
   display: "flex",
   flexDirection: "column",
 };
@@ -88,57 +83,63 @@ const frame: React.CSSProperties = {
 function ChildLabel({ row, fecha }: { row: Row; fecha: string }) {
   return (
     <div className="label" style={frame}>
-      {/* Encabezado: negro sólido, ministerio destacado (nítido en térmica) */}
+      {/* Encabezado compacto en una sola línea */}
       <div
         style={{
           background: "#000",
           color: "#fff",
-          padding: "2.5mm 4mm",
+          padding: "1.5mm 3mm",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexShrink: 0,
         }}
       >
-        {/* Espacio reservado para el logo de ARM: reemplazar el recuadro por <img src="/logo.png" .../> */}
-        <span style={{ display: "flex", alignItems: "center", gap: "2mm" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "1.5mm" }}>
           <span
             style={{
               background: "#fff",
               color: "#000",
-              borderRadius: "2px",
-              padding: "0.5mm 1.5mm",
-              fontSize: "9pt",
+              borderRadius: "1px",
+              padding: "0 1mm",
+              fontSize: "7pt",
               fontWeight: 700,
-              letterSpacing: "0.5px",
             }}
           >
             ARM
           </span>
-          <span style={{ fontSize: "14pt", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>
+          <span style={{ fontSize: "12pt", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
             {MIN_LABEL[row.child.ministerio]}
           </span>
         </span>
-        <span style={{ fontSize: "9pt" }}>{fecha}</span>
+        <span style={{ fontSize: "8pt" }}>{fecha}</span>
       </div>
 
-      <div style={{ padding: "3mm 4mm 4mm", textAlign: "center", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ fontSize: "8pt", color: "#666", letterSpacing: "1px", textTransform: "uppercase" }}>
-          Nombre
+      {/* Cuerpo: nombre + (alergia) + código, repartido en el alto */}
+      <div
+        style={{
+          padding: "1.5mm 3mm 2mm",
+          textAlign: "center",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          gap: "1.5mm",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: "24pt", fontWeight: 700, lineHeight: 1 }}>{row.child.nombre}</div>
+          <div style={{ fontSize: "11pt", color: "#333", lineHeight: 1.1 }}>{row.child.apellido}</div>
         </div>
-        <div style={{ fontSize: "30pt", fontWeight: 700, lineHeight: 1, margin: "1mm 0" }}>
-          {row.child.nombre}
-        </div>
-        <div style={{ fontSize: "13pt", color: "#333", marginBottom: "3mm" }}>{row.child.apellido}</div>
 
         {row.child.alergias && (
           <div
             style={{
-              border: "1.5pt solid #000",
+              border: "1pt solid #000",
               fontWeight: 700,
-              fontSize: "10pt",
-              padding: "1.5mm 3mm",
-              borderRadius: "2mm",
-              marginBottom: "3mm",
+              fontSize: "9pt",
+              padding: "0.8mm 2mm",
+              borderRadius: "1.5mm",
             }}
           >
             ⚠ ALERGIA: {row.child.alergias.toUpperCase()}
@@ -147,15 +148,19 @@ function ChildLabel({ row, fecha }: { row: Row; fecha: string }) {
 
         <div
           style={{
-            border: "2pt solid #000",
-            borderRadius: "2mm",
-            padding: "1.5mm",
+            border: "1.5pt solid #000",
+            borderRadius: "1.5mm",
+            padding: "0.8mm",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "2mm",
           }}
         >
-          <div style={{ fontSize: "8pt", color: "#666", letterSpacing: "1px" }}>CÓDIGO</div>
-          <div style={{ fontFamily: "monospace", fontSize: "30pt", fontWeight: 700, letterSpacing: "4px", lineHeight: 1 }}>
+          <span style={{ fontSize: "7pt", color: "#555", letterSpacing: "0.5px" }}>CÓDIGO</span>
+          <span style={{ fontFamily: "monospace", fontSize: "24pt", fontWeight: 700, letterSpacing: "3px", lineHeight: 1 }}>
             {row.codigo_seguridad}
-          </div>
+          </span>
         </div>
       </div>
     </div>
@@ -173,47 +178,58 @@ function ParentLabel({
 }) {
   return (
     <div className="label" style={frame}>
-      <div style={{ background: "#000", color: "#fff", padding: "2.5mm 4mm", fontSize: "12pt", fontWeight: 700 }}>
+      <div
+        style={{
+          background: "#000",
+          color: "#fff",
+          padding: "1.5mm 3mm",
+          fontSize: "10pt",
+          fontWeight: 700,
+          flexShrink: 0,
+        }}
+      >
         🎟 COMPROBANTE DE RETIRO
       </div>
-      <div style={{ padding: "3mm 4mm 4mm", flex: 1 }}>
-        <div style={{ fontSize: "10pt", color: "#444", marginBottom: "2mm" }}>
+      <div style={{ padding: "1.5mm 3mm 2mm", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ fontSize: "8.5pt", color: "#444", marginBottom: "1mm" }}>
           Familia {familia.apellido} · {fecha}
         </div>
-        {rows.map((r) => (
-          <div
-            key={r.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              borderTop: "1px solid #000",
-              padding: "2mm 0",
-            }}
-          >
-            <span style={{ fontSize: "12pt", display: "flex", alignItems: "center", gap: "2mm" }}>
-              <span style={{ fontSize: "8pt", fontWeight: 700, border: "1px solid #000", borderRadius: "2px", padding: "0 1mm" }}>
-                {MIN_LABEL[r.child.ministerio].charAt(0)}
-              </span>
-              {r.child.nombre} {r.child.apellido}
-            </span>
-            <span
+        <div style={{ flex: 1 }}>
+          {rows.map((r) => (
+            <div
+              key={r.id}
               style={{
-                fontFamily: "monospace",
-                fontSize: "16pt",
-                fontWeight: 700,
-                letterSpacing: "2px",
-                border: "1.5pt solid #000",
-                borderRadius: "2mm",
-                padding: "0.5mm 2.5mm",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderTop: "0.75pt solid #000",
+                padding: "1mm 0",
               }}
             >
-              {r.codigo_seguridad}
-            </span>
-          </div>
-        ))}
-        <div style={{ fontSize: "8.5pt", color: "#444", marginTop: "3mm", lineHeight: 1.4, borderTop: "1px solid #000", paddingTop: "2mm" }}>
-          Conserva este comprobante. El código debe coincidir con el del niño para poder retirarlo.
+              <span style={{ fontSize: "10pt", display: "flex", alignItems: "center", gap: "1.5mm" }}>
+                <span style={{ fontSize: "7pt", fontWeight: 700, border: "0.75pt solid #000", borderRadius: "1px", padding: "0 0.8mm" }}>
+                  {MIN_LABEL[r.child.ministerio].charAt(0)}
+                </span>
+                {r.child.nombre} {r.child.apellido}
+              </span>
+              <span
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "13pt",
+                  fontWeight: 700,
+                  letterSpacing: "1.5px",
+                  border: "1pt solid #000",
+                  borderRadius: "1.5mm",
+                  padding: "0.3mm 2mm",
+                }}
+              >
+                {r.codigo_seguridad}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "7pt", color: "#444", marginTop: "1mm", lineHeight: 1.3, borderTop: "0.75pt solid #000", paddingTop: "1mm" }}>
+          Conserva este comprobante. El código debe coincidir con el del niño para retirarlo.
         </div>
       </div>
     </div>
