@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/access";
 import { MIN_LABEL, type Ministerio } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  await requireModule("dashboard");
   const supabase = createClient();
 
   const { data: servicios } = await supabase

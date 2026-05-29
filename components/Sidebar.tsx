@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { NavItem } from "@/lib/permissions";
 
-const NAV = [
-  { href: "/dashboard", label: "Inicio", icon: "🏠" },
-  { href: "/checkin", label: "Check-in", icon: "🎟️" },
-  { href: "/checkout", label: "Retiro", icon: "✅" },
-  { href: "/familias", label: "Familias", icon: "👨‍👩‍👧" },
-  { href: "/servicios", label: "Servicios", icon: "📅" },
-];
-
-export default function Sidebar({ email }: { email: string }) {
+export default function Sidebar({
+  nav,
+  email,
+  rolNombre,
+}: {
+  nav: NavItem[];
+  email: string;
+  rolNombre: string;
+}) {
   const pathname = usePathname();
 
   async function logout() {
@@ -32,7 +33,7 @@ export default function Sidebar({ email }: { email: string }) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
@@ -50,6 +51,11 @@ export default function Sidebar({ email }: { email: string }) {
       </nav>
 
       <div className="mt-4 border-t border-line pt-4">
+        {rolNombre && (
+          <span className="mb-2 ml-2 inline-block rounded-lg bg-paper px-2 py-0.5 text-xs font-medium text-muted">
+            {rolNombre}
+          </span>
+        )}
         <p className="truncate px-2 text-xs text-muted">{email}</p>
         <button
           onClick={logout}

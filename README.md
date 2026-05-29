@@ -115,3 +115,34 @@ components/Sidebar.tsx    Navegación
 supabase/schema.sql      Esquema completo de la base de datos
 middleware.ts            Protección de rutas / sesión
 ```
+
+---
+
+## 7. Roles y permisos (multiusuario)
+
+Después de `schema.sql`, ejecuta [`supabase/roles.sql`](supabase/roles.sql) en el SQL Editor.
+Esto agrega perfiles por usuario, un catálogo de roles y una matriz de permisos por módulo.
+
+**Importante:** dentro de `roles.sql` hay una línea para nombrar al administrador:
+
+```sql
+update profiles set rol = 'admin' where email = 'admin@kids.cl';
+```
+
+Cámbiala por el email de **tu** cuenta antes de ejecutar (o ejecútala aparte después).
+
+### Roles que vienen por defecto
+- **Administrador**: acceso total. Gestiona usuarios y permisos.
+- **Líder**: check-in, retiro, familias y servicios. No ve Usuarios.
+- **Solo retiro**: solo el módulo de Retiro (verificar código y entregar niños).
+
+### Cómo funciona
+- Cada módulo tiene dos permisos: **Ver** (entra a la sección) y **Gestionar** (crear/editar/eliminar).
+- El admin asigna roles y edita la matriz desde la pantalla **Usuarios** (solo visible para admin).
+- Los permisos se aplican en el sidebar (oculta lo no permitido) **y** en la base de datos
+  vía RLS, así que no es solo cosmético: un usuario sin permiso tampoco puede leer/escribir
+  esos datos aunque entre por URL.
+
+### Agregar gente al equipo
+Las cuentas se crean en **Supabase → Authentication → Users** (email + contraseña).
+Al crearse, aparecen solas en la pantalla *Usuarios* para asignarles un rol.
