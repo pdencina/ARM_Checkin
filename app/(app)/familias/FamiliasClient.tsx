@@ -149,6 +149,7 @@ function AddChild({ guardianId, onAdded }: { guardianId: string; onAdded: () => 
         <input className="field" type="date" value={c.fecha_nacimiento} onChange={(e) => setC({ ...c, fecha_nacimiento: e.target.value })} />
         <select className="field" value={c.ministerio} onChange={(e) => setC({ ...c, ministerio: e.target.value as Ministerio })}>
           <option value="kids">Kids</option>
+                <option value="sensorial">Sensorial</option>
           <option value="tweens">Tweens</option>
         </select>
         <input className="field col-span-2" placeholder="Alergias (opcional)" value={c.alergias} onChange={(e) => setC({ ...c, alergias: e.target.value })} />

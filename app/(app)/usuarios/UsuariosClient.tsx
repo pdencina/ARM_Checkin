@@ -1,8 +1,12 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { MODULES, type ProfileRow, type RoleRow, type RolePermission } from "@/lib/permissions";
+
+function genPassword() {
+  const c = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+  return Array.from({ length: 12 }, () => c[Math.floor(Math.random() * c.length)]).join("");
+}
 
 export default function UsuariosClient() {
   const supabase = createClient();
@@ -13,6 +17,10 @@ export default function UsuariosClient() {
   const [meId, setMeId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const [nu, setNu] = useState({ email: "", password: "", rol: "lider" });
+  const [creating, setCreating] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+
   async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser();
     setMeId(user?.id ?? null);
@@ -21,17 +29,27 @@ export default function UsuariosClient() {
       supabase.from("roles").select("slug, nombre, es_admin").order("slug"),
       supabase.from("role_permissions").select("rol, modulo, ver, gestionar"),
     ]);
-    setProfiles(p ?? []);
-    setRoles(r ?? []);
-    setPerms(rp ?? []);
+    setProfiles(p ?? []); setRoles(r ?? []); setPerms(rp ?? []);
   }
-  useEffect(() => {
-    loadAll();
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
-  function flash(t: string) {
-    setMsg(t);
-    setTimeout(() => setMsg(null), 2200);
+  function flash(t: string) { setMsg(t); setTimeout(() => setMsg(null), 2500); }
+
+  async function createUser() {
+    if (!nu.email || !nu.password) return flash("Email y contraseña requeridos.");
+    setCreating(true);
+    const res = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: nu.email, password: nu.password, rol: nu.rol }),
+    });
+    const data = await res.json();
+    setCreating(false);
+    if (!res.ok) { flash("Error: " + (data.error ?? "no se pudo crear")); return; }
+    flash("Usuario creado ✓");
+    setNu({ email: "", password: "", rol: "lider" });
+    setShowCreate(false);
+    loadAll();
   }
 
   async function cambiarRol(id: string, rol: string) {
@@ -42,8 +60,8 @@ export default function UsuariosClient() {
 
   async function toggleActivo(id: string, activo: boolean) {
     setProfiles((prev) => prev.map((u) => (u.id === id ? { ...u, activo } : u)));
-    const { error } = await supabase.from("profiles").update({ activo }).eq("id", id);
-    flash(error ? "Error" : activo ? "Usuario activado ✓" : "Usuario desactivado ✓");
+    await supabase.from("profiles").update({ activo }).eq("id", id);
+    flash(activo ? "Usuario activado ✓" : "Usuario desactivado ✓");
   }
 
   function getPerm(rol: string, modulo: string) {
@@ -53,18 +71,12 @@ export default function UsuariosClient() {
   async function setPerm(rol: string, modulo: string, campo: "ver" | "gestionar", val: boolean) {
     const cur = getPerm(rol, modulo);
     const next = { ...cur, [campo]: val };
-    // gestionar implica ver; quitar ver quita gestionar
     if (campo === "gestionar" && val) next.ver = true;
     if (campo === "ver" && !val) next.gestionar = false;
-
-    setPerms((prev) => {
-      const without = prev.filter((p) => !(p.rol === rol && p.modulo === modulo));
-      return [...without, next];
-    });
-    const { error } = await supabase
-      .from("role_permissions")
+    setPerms((prev) => [...prev.filter((p) => !(p.rol === rol && p.modulo === modulo)), next]);
+    await supabase.from("role_permissions")
       .upsert({ rol, modulo, ver: next.ver, gestionar: next.gestionar }, { onConflict: "rol,modulo" });
-    flash(error ? "Error al guardar permiso" : "Permiso guardado ✓");
+    flash("Permiso guardado ✓");
   }
 
   const rolesEditables = roles.filter((r) => !r.es_admin);
@@ -72,25 +84,55 @@ export default function UsuariosClient() {
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-1 text-2xl font-semibold">Usuarios y permisos</h1>
-      <p className="mb-5 text-muted">Asigna roles a tu equipo y define qué puede hacer cada rol.</p>
+      <p className="mb-5 text-muted">Gestiona tu equipo y define qué puede hacer cada rol.</p>
 
       <div className="mb-5 flex gap-2">
-        <button
-          onClick={() => setTab("usuarios")}
-          className={`btn ${tab === "usuarios" ? "btn-brand" : "btn-ghost"}`}
-        >
-          Usuarios
-        </button>
-        <button
-          onClick={() => setTab("permisos")}
-          className={`btn ${tab === "permisos" ? "btn-brand" : "btn-ghost"}`}
-        >
-          Permisos por rol
-        </button>
+        {(["usuarios", "permisos"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={`btn ${tab === t ? "btn-brand" : "btn-ghost"}`}>
+            {t === "usuarios" ? "Usuarios" : "Permisos por rol"}
+          </button>
+        ))}
       </div>
 
       {tab === "usuarios" && (
         <div className="space-y-2">
+          {/* Crear nuevo usuario */}
+          {showCreate ? (
+            <div className="card p-5">
+              <p className="mb-3 font-medium">Nuevo usuario</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input className="field col-span-2" type="email" placeholder="Email" value={nu.email}
+                  onChange={(e) => setNu({ ...nu, email: e.target.value })} />
+                <div className="relative col-span-2 flex gap-2">
+                  <input className="field flex-1" type="text" placeholder="Contraseña" value={nu.password}
+                    onChange={(e) => setNu({ ...nu, password: e.target.value })} />
+                  <button className="btn-ghost shrink-0 text-xs"
+                    onClick={() => setNu({ ...nu, password: genPassword() })}>
+                    Generar
+                  </button>
+                </div>
+                <select className="field col-span-2" value={nu.rol} onChange={(e) => setNu({ ...nu, rol: e.target.value })}>
+                  {roles.map((r) => <option key={r.slug} value={r.slug}>{r.nombre}</option>)}
+                </select>
+              </div>
+              {nu.password && (
+                <p className="mt-2 rounded-xl2 bg-paper px-3 py-1.5 font-mono text-sm">
+                  {nu.password}
+                  <button className="ml-2 text-xs text-muted hover:text-ink"
+                    onClick={() => navigator.clipboard.writeText(nu.password)}>copiar</button>
+                </p>
+              )}
+              <div className="mt-3 flex gap-2">
+                <button className="btn-brand" onClick={createUser} disabled={creating}>
+                  {creating ? "Creando…" : "Crear usuario"}
+                </button>
+                <button className="btn-ghost" onClick={() => setShowCreate(false)}>Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn-brand" onClick={() => setShowCreate(true)}>+ Nuevo usuario</button>
+          )}
+
           {profiles.map((u) => {
             const esYo = u.id === meId;
             return (
@@ -99,38 +141,17 @@ export default function UsuariosClient() {
                   <p className="truncate font-medium">{u.nombre || u.email}</p>
                   <p className="truncate text-sm text-muted">{u.email}</p>
                 </div>
-
-                <select
-                  className="field max-w-[10rem]"
-                  value={u.rol}
-                  disabled={esYo}
-                  onChange={(e) => cambiarRol(u.id, e.target.value)}
-                >
-                  {roles.map((r) => (
-                    <option key={r.slug} value={r.slug}>
-                      {r.nombre}
-                    </option>
-                  ))}
+                <select className="field max-w-[10rem]" value={u.rol} disabled={esYo}
+                  onChange={(e) => cambiarRol(u.id, e.target.value)}>
+                  {roles.map((r) => <option key={r.slug} value={r.slug}>{r.nombre}</option>)}
                 </select>
-
-                <button
-                  onClick={() => toggleActivo(u.id, !u.activo)}
-                  disabled={esYo}
-                  className={`badge ${u.activo ? "bg-kids-soft text-kids-ink" : "bg-line text-muted"} ${
-                    esYo ? "opacity-50" : ""
-                  }`}
-                >
+                <button onClick={() => toggleActivo(u.id, !u.activo)} disabled={esYo}
+                  className={`badge ${u.activo ? "bg-kids-soft text-kids-ink" : "bg-line text-muted"} ${esYo ? "opacity-50" : ""}`}>
                   {u.activo ? "Activo" : "Inactivo"}
                 </button>
               </div>
             );
           })}
-
-          <div className="card mt-4 bg-paper/50 p-4 text-sm text-muted">
-            <p className="mb-1 font-medium text-ink">¿Falta alguien?</p>
-            Por seguridad, las cuentas se crean en Supabase → Authentication → Users (con su email y
-            contraseña). Una vez creadas aparecen aquí automáticamente para asignarles un rol.
-          </div>
         </div>
       )}
 
@@ -152,24 +173,14 @@ export default function UsuariosClient() {
                     const p = getPerm(r.slug, m.key);
                     return (
                       <tr key={m.key} className="border-t border-line">
-                        <td className="px-5 py-2">
-                          {m.icon} {m.label}
+                        <td className="px-5 py-2">{m.icon} {m.label}</td>
+                        <td className="px-3 py-2 text-center">
+                          <input type="checkbox" className="h-5 w-5 accent-brand" checked={p.ver}
+                            onChange={(e) => setPerm(r.slug, m.key, "ver", e.target.checked)} />
                         </td>
                         <td className="px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5 accent-brand"
-                            checked={p.ver}
-                            onChange={(e) => setPerm(r.slug, m.key, "ver", e.target.checked)}
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5 accent-brand"
-                            checked={p.gestionar}
-                            onChange={(e) => setPerm(r.slug, m.key, "gestionar", e.target.checked)}
-                          />
+                          <input type="checkbox" className="h-5 w-5 accent-brand" checked={p.gestionar}
+                            onChange={(e) => setPerm(r.slug, m.key, "gestionar", e.target.checked)} />
                         </td>
                       </tr>
                     );
@@ -178,10 +189,9 @@ export default function UsuariosClient() {
               </table>
             </div>
           ))}
-
           <div className="card bg-paper/50 p-4 text-sm text-muted">
-            <span className="font-medium text-ink">Administrador</span> siempre tiene acceso total; no
-            requiere configuración. "Gestionar" incluye crear, editar y eliminar dentro del módulo.
+            <span className="font-medium text-ink">Administrador</span> siempre tiene acceso total.
+            "Gestionar" incluye crear, editar y eliminar.
           </div>
         </div>
       )}
