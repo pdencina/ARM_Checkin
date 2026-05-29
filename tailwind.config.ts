@@ -2,6 +2,10 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  safelist: [
+    "bg-kids", "bg-tweens", "bg-kids-soft", "bg-tweens-soft",
+    "text-kids-ink", "text-tweens-ink", "ring-kids", "ring-tweens",
+  ],
   theme: {
     extend: {
       colors: {

@@ -4,6 +4,11 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { MIN_LABEL, edad, type Child, type Guardian, type Service } from "@/lib/types";
 
+const MINCOLOR = {
+  kids: { bg: "bg-kids-soft", text: "text-kids-ink", ring: "ring-kids", dot: "bg-kids" },
+  tweens: { bg: "bg-tweens-soft", text: "text-tweens-ink", ring: "ring-tweens", dot: "bg-tweens" },
+};
+
 export default function CheckinStation({ servicios }: { servicios: Service[] }) {
   const supabase = createClient();
 
@@ -16,6 +21,8 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [printIds, setPrintIds] = useState<string | null>(null);
+
+  const step = guardian ? 2 : 1;
 
   async function buscar() {
     setMsg(null);
@@ -53,6 +60,14 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
     setSelected(next);
   }
 
+  function reset() {
+    setGuardian(null);
+    setChildren([]);
+    setSelected(new Set());
+    setQuery("");
+    setGuardians([]);
+  }
+
   async function registrar() {
     if (!serviceId) return setMsg("Selecciona un servicio.");
     if (!guardian || selected.size === 0) return;
@@ -71,10 +86,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
       }
       setPrintIds(ids.join(","));
       setMsg(`✅ ${ids.length} niño(s) registrados. Imprimiendo etiquetas…`);
-      setGuardian(null);
-      setChildren([]);
-      setSelected(new Set());
-      setQuery("");
+      reset();
     } catch (e: any) {
       setMsg("Error: " + (e.message ?? "no se pudo registrar"));
     } finally {
@@ -85,7 +97,16 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-2xl font-semibold">Check-in</h1>
-      <p className="mb-5 text-muted">Busca la familia, selecciona a los niños e imprime.</p>
+      <p className="mb-5 text-muted">Busca la familia, elige a los niños e imprime.</p>
+
+      {/* Pasos */}
+      <div className="mb-6 flex items-center gap-2">
+        <Step n={1} label="Buscar familia" active={step === 1} done={step > 1} />
+        <span className="h-px flex-1 bg-line" />
+        <Step n={2} label="Elegir niños" active={step === 2} done={false} />
+        <span className="h-px flex-1 bg-line" />
+        <Step n={3} label="Imprimir" active={false} done={false} />
+      </div>
 
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium">Servicio</label>
@@ -99,42 +120,61 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
         </select>
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <input
-          className="field"
-          placeholder="Buscar por apellido o teléfono…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && buscar()}
-        />
-        <button className="btn-ghost" onClick={buscar}>
-          Buscar
-        </button>
-      </div>
-
-      {guardians.length > 0 && (
-        <div className="card mb-4 divide-y divide-line overflow-hidden">
-          {guardians.map((g) => (
-            <button
-              key={g.id}
-              onClick={() => elegirFamilia(g)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-paper"
-            >
-              <span className="font-medium">
-                {g.nombre} {g.apellido}
-              </span>
-              <span className="text-sm text-muted">{g.telefono}</span>
+      {!guardian && (
+        <>
+          <div className="mb-4 flex gap-2">
+            <input
+              className="field"
+              placeholder="Buscar por apellido o teléfono…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscar()}
+            />
+            <button className="btn-brand" onClick={buscar}>
+              Buscar
             </button>
-          ))}
-        </div>
+          </div>
+
+          {guardians.length > 0 && (
+            <div className="card divide-y divide-line overflow-hidden">
+              {guardians.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => elegirFamilia(g)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-paper"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-medium text-brand-dark">
+                    {g.nombre.charAt(0)}
+                    {g.apellido.charAt(0)}
+                  </span>
+                  <span className="font-medium">
+                    {g.nombre} {g.apellido}
+                  </span>
+                  <span className="ml-auto text-sm text-muted">{g.telefono}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {guardian && (
-        <div className="card mb-4 p-5">
-          <p className="mb-1 text-sm text-muted">Familia</p>
-          <p className="mb-4 text-lg font-semibold">
-            {guardian.nombre} {guardian.apellido}
-          </p>
+        <div className="card p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft font-medium text-brand-dark">
+              {guardian.nombre.charAt(0)}
+              {guardian.apellido.charAt(0)}
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold">
+                {guardian.nombre} {guardian.apellido}
+              </p>
+              <p className="text-sm text-muted">{children.length} niño(s)</p>
+            </div>
+            <button className="text-sm text-muted hover:text-ink" onClick={reset}>
+              ← Cambiar
+            </button>
+          </div>
 
           {children.length === 0 ? (
             <p className="text-muted">Esta familia no tiene niños registrados.</p>
@@ -143,39 +183,40 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
               {children.map((c) => {
                 const on = selected.has(c.id);
                 const e = edad(c.fecha_nacimiento);
+                const col = MINCOLOR[c.ministerio];
                 return (
-                  <label
+                  <button
                     key={c.id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl2 border p-3 transition ${
-                      on ? "border-brand bg-brand-soft/40" : "border-line"
+                    onClick={() => toggle(c.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl2 p-3 text-left transition ${
+                      on ? `${col.bg} ring-2 ${col.ring}` : "bg-paper ring-1 ring-line"
                     }`}
                   >
-                    <input type="checkbox" checked={on} onChange={() => toggle(c.id)} className="h-5 w-5 accent-brand" />
-                    <span className="font-medium">
-                      {c.nombre} {c.apellido}
+                    <span className={`h-3 w-3 rounded-full ${col.dot}`} />
+                    <div className="flex-1">
+                      <p className={`font-medium ${on ? col.text : ""}`}>
+                        {c.nombre} {c.apellido}
+                        {e !== null && <span className="font-normal text-muted"> · {e} años</span>}
+                      </p>
+                      {c.alergias && <p className="text-sm text-red-700">⚠️ {c.alergias}</p>}
+                    </div>
+                    <span className={`badge ${col.bg} ${col.text}`}>{MIN_LABEL[c.ministerio]}</span>
+                    <span className={`text-2xl ${on ? col.text : "text-line"}`}>
+                      {on ? "☑" : "☐"}
                     </span>
-                    {e !== null && <span className="text-sm text-muted">· {e} años</span>}
-                    <span
-                      className={`badge ml-auto ${
-                        c.ministerio === "kids" ? "bg-kids-soft text-kids-ink" : "bg-tweens-soft text-tweens-ink"
-                      }`}
-                    >
-                      {MIN_LABEL[c.ministerio]}
-                    </span>
-                    {c.alergias && <span className="badge bg-red-50 text-red-700">⚠️ {c.alergias}</span>}
-                  </label>
+                  </button>
                 );
               })}
             </div>
           )}
 
-          <button className="btn-brand mt-5 w-full" onClick={registrar} disabled={busy || selected.size === 0}>
+          <button className="btn-brand mt-5 w-full text-base" onClick={registrar} disabled={busy || selected.size === 0}>
             {busy ? "Registrando…" : `🖨️ Registrar e imprimir (${selected.size})`}
           </button>
         </div>
       )}
 
-      {msg && <p className="text-center text-sm font-medium text-ink">{msg}</p>}
+      {msg && <p className="mt-4 text-center text-sm font-medium text-ink">{msg}</p>}
 
       {printIds && (
         <iframe
@@ -186,6 +227,21 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
           aria-hidden="true"
         />
       )}
+    </div>
+  );
+}
+
+function Step({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 ${active || done ? "" : "opacity-40"}`}>
+      <span
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${
+          done ? "bg-kids text-white" : active ? "bg-brand text-white" : "bg-line text-muted"
+        }`}
+      >
+        {done ? "✓" : n}
+      </span>
+      <span className="hidden text-sm font-medium sm:inline">{label}</span>
     </div>
   );
 }
