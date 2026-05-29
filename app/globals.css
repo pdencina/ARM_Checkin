@@ -36,6 +36,11 @@
   body {
     background: #fff;
   }
+  .print-wrap {
+    background: #fff !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
   .label {
     page-break-after: always;
     break-after: page;

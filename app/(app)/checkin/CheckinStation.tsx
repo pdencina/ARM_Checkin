@@ -15,6 +15,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [printIds, setPrintIds] = useState<string | null>(null);
 
   async function buscar() {
     setMsg(null);
@@ -68,7 +69,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
         if (error) throw error;
         if (data?.id) ids.push(data.id);
       }
-      window.open(`/print/${ids.join(",")}`, "_blank", "width=420,height=640");
+      setPrintIds(ids.join(","));
       setMsg(`✅ ${ids.length} niño(s) registrados. Imprimiendo etiquetas…`);
       setGuardian(null);
       setChildren([]);
@@ -175,6 +176,16 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
       )}
 
       {msg && <p className="text-center text-sm font-medium text-ink">{msg}</p>}
+
+      {printIds && (
+        <iframe
+          key={printIds}
+          title="impresion-etiquetas"
+          src={`/print/${printIds}`}
+          style={{ position: "absolute", left: "-10000px", top: 0, width: "360px", height: "640px", border: 0 }}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }

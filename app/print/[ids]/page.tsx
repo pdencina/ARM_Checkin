@@ -53,7 +53,7 @@ export default function PrintPage({ params }: { params: { ids: string } }) {
   const familia = rows[0].guardian;
 
   return (
-    <div style={{ background: "#f0ece4", minHeight: "100vh", padding: "16px 0" }}>
+    <div className="print-wrap" style={{ background: "#f0ece4", minHeight: "100vh", padding: "16px 0" }}>
       <div className="no-print" style={{ textAlign: "center", marginBottom: 16 }}>
         <button onClick={() => window.print()} className="btn-brand">
           🖨️ Imprimir
