@@ -14,16 +14,24 @@ create table if not exists profiles (
   activo     boolean not null default true,
   created_at timestamptz not null default now()
 );
-
--- ----------------------------------------------------------------
--- CATÁLOGO DE ROLES
--- ----------------------------------------------------------------
 create table if not exists roles (
   slug       text primary key,        -- 'admin','lider','retiro'
   nombre     text not null,
   es_admin   boolean not null default false,  -- los admin saltan toda restricción
   created_at timestamptz not null default now()
 );
+
+-- Vínculo profiles.rol -> roles.slug (necesario para que la app lea el rol).
+-- Idempotente: no falla si ya existe.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_rol_fkey'
+  ) then
+    alter table profiles
+      add constraint profiles_rol_fkey foreign key (rol) references roles(slug);
+  end if;
+end $$;
 
 -- ----------------------------------------------------------------
 -- MATRIZ DE PERMISOS (rol × módulo)

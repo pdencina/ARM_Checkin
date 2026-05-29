@@ -24,7 +24,7 @@ export async function getAccess(): Promise<Access | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("nombre, email, rol, activo, roles(nombre, es_admin)")
+    .select("nombre, email, rol, activo")
     .eq("id", user.id)
     .single();
 
@@ -47,9 +47,15 @@ export async function getAccess(): Promise<Access | null> {
     };
   }
 
-  const rolesRel = (profile as any).roles;
-  const isAdmin = rolesRel?.es_admin === true;
-  const rolNombre = rolesRel?.nombre ?? profile.rol;
+  // Rol en consulta aparte (robusto: no depende de relaciones de PostgREST)
+  const { data: rolRow } = await supabase
+    .from("roles")
+    .select("nombre, es_admin")
+    .eq("slug", profile.rol)
+    .single();
+
+  const isAdmin = rolRow?.es_admin === true;
+  const rolNombre = rolRow?.nombre ?? profile.rol;
 
   const perms: Record<string, { ver: boolean; gestionar: boolean }> = {};
   if (!isAdmin) {
