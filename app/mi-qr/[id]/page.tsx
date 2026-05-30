@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import QRPageClient from "./QRPageClient";
 
 export default async function MiQRPage({ params }: { params: { id: string } }) {
-  // Usamos el cliente anon para leer solo el nombre del tutor (dato no sensible)
+  // Server component: usamos service role key para leer el tutor sin restricción de RLS.
+  // Esta key NUNCA llega al browser — solo existe en el servidor de Vercel.
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   const { data: guardian } = await supabase
