@@ -1,10 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/useToast";
+import { ToastContainer } from "@/components/Toast";
 import { MIN_COLOR, MIN_LABEL, type AuthorizedPickup, type Child, type Guardian, type Ministerio } from "@/lib/types";
 
 export default function FamiliasClient() {
   const supabase = createClient();
+  const { toasts, toast, dismiss } = useToast();
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [children, setChildren] = useState<Record<string, Child[]>>({});
@@ -20,8 +23,10 @@ export default function FamiliasClient() {
 
   async function addGuardian() {
     if (!g.nombre || !g.apellido) return;
-    await supabase.from("guardians").insert({ nombre: g.nombre, apellido: g.apellido, telefono: g.telefono || null, email: g.email || null });
+    const { error } = await supabase.from("guardians").insert({ nombre: g.nombre, apellido: g.apellido, telefono: g.telefono || null, email: g.email || null });
+    if (error) { toast("Error al agregar familia.", "error"); return; }
     setG({ nombre: "", apellido: "", telefono: "", email: "" });
+    toast("Familia agregada exitosamente.", "success");
     loadGuardians();
   }
 
@@ -64,7 +69,6 @@ export default function FamiliasClient() {
               <span className="flex-1 font-medium">{gu.nombre} {gu.apellido}</span>
               <span className="text-sm text-muted">{gu.telefono}</span>
             </button>
-
             {open === gu.id && (
               <div className="border-t border-line bg-paper/40 px-5 py-4 space-y-3">
                 {(children[gu.id] ?? []).map((c) => {
@@ -84,29 +88,31 @@ export default function FamiliasClient() {
                           ))}
                         </div>
                       </div>
-
                       {tab === "info" && <ChildInfo child={c} onSave={() => loadChildren(gu.id)} />}
                       {tab === "medico" && <ChildMedico child={c} onSave={() => loadChildren(gu.id)} />}
                       {tab === "autorizados" && <ChildAutorizados child={c} pickups={pickups[c.id] ?? []} onSave={() => loadPickups(c.id)} />}
                     </div>
                   );
                 })}
-
                 <AddChild guardianId={gu.id} onAdded={() => loadChildren(gu.id)} />
               </div>
             )}
           </div>
         ))}
       </div>
+
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
 
 function ChildInfo({ child, onSave }: { child: Child; onSave: () => void }) {
   const supabase = createClient();
+  const { toasts, toast, dismiss } = useToast();
   const [v, setV] = useState({ nombre: child.nombre, apellido: child.apellido, fecha_nacimiento: child.fecha_nacimiento ?? "", ministerio: child.ministerio, alergias: child.alergias ?? "" });
   async function save() {
-    await supabase.from("children").update({ nombre: v.nombre, apellido: v.apellido, fecha_nacimiento: v.fecha_nacimiento || null, ministerio: v.ministerio, alergias: v.alergias || null }).eq("id", child.id);
+    const { error } = await supabase.from("children").update({ nombre: v.nombre, apellido: v.apellido, fecha_nacimiento: v.fecha_nacimiento || null, ministerio: v.ministerio, alergias: v.alergias || null }).eq("id", child.id);
+    error ? toast("Error al guardar.", "error") : toast("Información guardada.", "success");
     onSave();
   }
   return (
@@ -115,21 +121,22 @@ function ChildInfo({ child, onSave }: { child: Child; onSave: () => void }) {
       <input className="field" placeholder="Apellido" value={v.apellido} onChange={(e) => setV({ ...v, apellido: e.target.value })} />
       <input className="field" type="date" value={v.fecha_nacimiento} onChange={(e) => setV({ ...v, fecha_nacimiento: e.target.value })} />
       <select className="field" value={v.ministerio} onChange={(e) => setV({ ...v, ministerio: e.target.value as Ministerio })}>
-        <option value="kids">Kids</option>
-        <option value="tweens">Tweens</option>
-        <option value="sensorial">Sensorial</option>
+        <option value="kids">Kids</option><option value="tweens">Tweens</option><option value="sensorial">Sensorial</option>
       </select>
       <input className="field col-span-2" placeholder="Alergias" value={v.alergias} onChange={(e) => setV({ ...v, alergias: e.target.value })} />
       <button className="btn-ghost col-span-2" onClick={save}>Guardar cambios</button>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
 
 function ChildMedico({ child, onSave }: { child: Child; onSave: () => void }) {
   const supabase = createClient();
+  const { toasts, toast, dismiss } = useToast();
   const [v, setV] = useState({ condiciones: child.condiciones ?? "", medicamentos: child.medicamentos ?? "", contacto_emergencia_nombre: child.contacto_emergencia_nombre ?? "", contacto_emergencia_telefono: child.contacto_emergencia_telefono ?? "" });
   async function save() {
-    await supabase.from("children").update({ condiciones: v.condiciones || null, medicamentos: v.medicamentos || null, contacto_emergencia_nombre: v.contacto_emergencia_nombre || null, contacto_emergencia_telefono: v.contacto_emergencia_telefono || null }).eq("id", child.id);
+    const { error } = await supabase.from("children").update({ condiciones: v.condiciones || null, medicamentos: v.medicamentos || null, contacto_emergencia_nombre: v.contacto_emergencia_nombre || null, contacto_emergencia_telefono: v.contacto_emergencia_telefono || null }).eq("id", child.id);
+    error ? toast("Error al guardar ficha médica.", "error") : toast("Ficha médica guardada.", "success");
     onSave();
   }
   return (
@@ -139,33 +146,38 @@ function ChildMedico({ child, onSave }: { child: Child; onSave: () => void }) {
       <input className="field" placeholder="Contacto emergencia (nombre)" value={v.contacto_emergencia_nombre} onChange={(e) => setV({ ...v, contacto_emergencia_nombre: e.target.value })} />
       <input className="field" placeholder="Teléfono emergencia" value={v.contacto_emergencia_telefono} onChange={(e) => setV({ ...v, contacto_emergencia_telefono: e.target.value })} />
       <button className="btn-ghost col-span-2" onClick={save}>Guardar ficha médica</button>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
 
 function ChildAutorizados({ child, pickups, onSave }: { child: Child; pickups: AuthorizedPickup[]; onSave: () => void }) {
   const supabase = createClient();
+  const { toasts, toast, dismiss } = useToast();
   const [np, setNp] = useState({ nombre: "", apellido: "", telefono: "", parentesco: "" });
   async function add() {
     if (!np.nombre || !np.apellido) return;
-    await supabase.from("authorized_pickups").insert({ child_id: child.id, nombre: np.nombre, apellido: np.apellido, telefono: np.telefono || null, parentesco: np.parentesco || null });
+    const { error } = await supabase.from("authorized_pickups").insert({ child_id: child.id, nombre: np.nombre, apellido: np.apellido, telefono: np.telefono || null, parentesco: np.parentesco || null });
+    if (error) { toast("Error al agregar autorizado.", "error"); return; }
     setNp({ nombre: "", apellido: "", telefono: "", parentesco: "" });
+    toast("Autorizado agregado exitosamente.", "success");
     onSave();
   }
   async function remove(id: string) {
     await supabase.from("authorized_pickups").update({ activo: false }).eq("id", id);
+    toast("Autorizado eliminado.", "warning");
     onSave();
   }
   return (
     <div className="p-4 space-y-3">
       <div className="space-y-1.5">
-        {pickups.length === 0 && <p className="text-sm text-muted">Sin autorizados adicionales aún.</p>}
+        {pickups.length === 0 && <p className="text-sm text-muted">Sin autorizados adicionales.</p>}
         {pickups.map((p) => (
           <div key={p.id} className="flex items-center gap-2 rounded-xl2 bg-paper px-3 py-2 text-sm">
             <span className="font-medium">{p.nombre} {p.apellido}</span>
             {p.parentesco && <span className="text-muted">· {p.parentesco}</span>}
             {p.telefono && <span className="text-muted ml-auto">{p.telefono}</span>}
-            <button onClick={() => remove(p.id)} className="ml-2 text-red-600 hover:text-red-800 text-xs">✕</button>
+            <button onClick={() => remove(p.id)} className="ml-2 text-brand-dark hover:text-brand text-xs">✕</button>
           </div>
         ))}
       </div>
@@ -176,21 +188,25 @@ function ChildAutorizados({ child, pickups, onSave }: { child: Child; pickups: A
         <input className="field" placeholder="Parentesco (ej. abuela)" value={np.parentesco} onChange={(e) => setNp({ ...np, parentesco: e.target.value })} />
         <button className="btn-ghost col-span-2" onClick={add}>Agregar autorizado</button>
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
 
 function AddChild({ guardianId, onAdded }: { guardianId: string; onAdded: () => void }) {
   const supabase = createClient();
+  const { toasts, toast, dismiss } = useToast();
   const [show, setShow] = useState(false);
   const [c, setC] = useState({ nombre: "", apellido: "", fecha_nacimiento: "", ministerio: "kids" as Ministerio, alergias: "" });
   async function add() {
     if (!c.nombre || !c.apellido) return;
-    const { data: child } = await supabase.from("children").insert({ nombre: c.nombre, apellido: c.apellido, fecha_nacimiento: c.fecha_nacimiento || null, ministerio: c.ministerio, alergias: c.alergias || null }).select().single();
-    if (!child) return;
+    const { data: child, error } = await supabase.from("children").insert({ nombre: c.nombre, apellido: c.apellido, fecha_nacimiento: c.fecha_nacimiento || null, ministerio: c.ministerio, alergias: c.alergias || null }).select().single();
+    if (error || !child) { toast("Error al guardar niño.", "error"); return; }
     await supabase.from("guardian_children").insert({ guardian_id: guardianId, child_id: child.id, es_principal: true });
     setC({ nombre: "", apellido: "", fecha_nacimiento: "", ministerio: "kids", alergias: "" });
-    setShow(false); onAdded();
+    setShow(false);
+    toast("Niño agregado exitosamente.", "success");
+    onAdded();
   }
   if (!show) return <button className="btn-ghost w-full" onClick={() => setShow(true)}>+ Agregar niño</button>;
   return (
@@ -206,6 +222,7 @@ function AddChild({ guardianId, onAdded }: { guardianId: string; onAdded: () => 
         <button className="btn-brand flex-1" onClick={add}>Guardar niño</button>
         <button className="btn-ghost" onClick={() => setShow(false)}>Cancelar</button>
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

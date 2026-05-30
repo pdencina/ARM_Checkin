@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/useToast";
+import { ToastContainer } from "@/components/Toast";
 import { MIN_COLOR, MIN_LABEL, edad, waLink, type Child, type Guardian, type Ministerio, type Service } from "@/lib/types";
 
 interface CheckinResult { id: string; codigo: string; childNombre: string; ministerio: Ministerio; primeraVez: boolean; }
@@ -13,6 +15,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   const [guardian, setGuardian] = useState<Guardian | null>(null);
   const [children, setChildren] = useState<Child[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const { toasts, toast, dismiss } = useToast();
   const [busy, setBusy] = useState(false);
   const [printIds, setPrintIds] = useState<string | null>(null);
   const [results, setResults] = useState<CheckinResult[] | null>(null);
@@ -64,7 +67,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
       setGuardian({ ...guardian }); // keep guardian for WhatsApp
       setChildren(children);
     } catch (e: any) {
-      alert("Error: " + (e.message ?? "no se pudo registrar"));
+      toast("Error al registrar: " + (e.message ?? "intenta nuevamente."), "error");
     } finally { setBusy(false); }
   }
 
@@ -194,6 +197,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
         </div>
       )}
 
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
       {printIds && (
         <iframe key={printIds} title="impresion" src={`/print/${printIds}`}
           style={{ position: "absolute", left: "-10000px", top: 0, width: "360px", height: "640px", border: 0 }}

@@ -1,12 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/useToast";
+import { ToastContainer } from "@/components/Toast";
 import type { Service } from "@/lib/types";
 
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
 export default function ServiciosClient() {
   const supabase = createClient();
+  const { toasts, toast, dismiss } = useToast();
   const [list, setList] = useState<Service[]>([]);
   const [s, setS] = useState({ nombre: "", fecha: "", hora: "", campus: "Principal", es_recurrente: false, dia_semana: 0 });
 
@@ -24,11 +27,13 @@ export default function ServiciosClient() {
       es_recurrente: s.es_recurrente, dia_semana: s.es_recurrente ? s.dia_semana : null,
     });
     setS({ nombre: "", fecha: "", hora: "", campus: "Principal", es_recurrente: false, dia_semana: 0 });
+    toast("Servicio creado exitosamente.", "success");
     load();
   }
 
   async function toggle(svc: Service) {
     await supabase.from("services").update({ activo: !svc.activo }).eq("id", svc.id);
+    toast(svc.activo ? "Servicio desactivado." : "Servicio activado.", svc.activo ? "warning" : "success");
     load();
   }
 
@@ -38,16 +43,17 @@ export default function ServiciosClient() {
     const diff = (svc.dia_semana - base.getDay() + 7) % 7 || 7;
     base.setDate(base.getDate() + diff);
     const proxFecha = base.toISOString().slice(0, 10);
-    const existe = list.find((s) => s.fecha === proxFecha && s.nombre === svc.nombre);
-    if (existe) return alert("Ya existe un servicio con ese nombre y fecha.");
+    const existe = list.find((x) => x.fecha === proxFecha && x.nombre === svc.nombre);
+    if (existe) { toast("Ya existe un servicio con ese nombre y fecha.", "warning"); return; }
     await supabase.from("services").insert({
       nombre: svc.nombre, fecha: proxFecha, hora: svc.hora_default ?? svc.hora,
       campus: svc.campus, es_recurrente: true, dia_semana: svc.dia_semana,
     });
+    toast("Próximo servicio creado.", "success");
     load();
   }
 
-  const campuses = Array.from(new Set(list.map((s) => s.campus).filter(Boolean)));
+  const campuses = Array.from(new Set(list.map((x) => x.campus).filter(Boolean)));
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -106,6 +112,8 @@ export default function ServiciosClient() {
           </div>
         ))}
       </div>
+
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/useToast";
+import { ToastContainer } from "@/components/Toast";
 import { MIN_COLOR, MIN_LABEL, type Ministerio, type Service, type Volunteer, type ServiceVolunteer } from "@/lib/types";
 
 const AREAS: Ministerio[] = ["kids", "tweens", "sensorial"];
@@ -12,7 +14,7 @@ export default function VoluntariosClient() {
   const [svols, setSvols] = useState<(ServiceVolunteer & { volunteer: Volunteer })[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceId, setServiceId] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const { toasts, toast, dismiss } = useToast();
 
   const [nv, setNv] = useState({ nombre: "", apellido: "", telefono: "", email: "", notas: "", areas: [] as string[] });
   const [adding, setAdding] = useState<{ ministerio: Ministerio; volId: string; rol: "lider" | "servidor" } | null>(null);
@@ -39,7 +41,7 @@ export default function VoluntariosClient() {
   useEffect(() => { loadVols(); loadServices(); }, []);
   useEffect(() => { if (serviceId) loadSvols(serviceId); }, [serviceId]);
 
-  function flash(t: string) { setMsg(t); setTimeout(() => setMsg(null), 2000); }
+  
 
   async function saveVol() {
     if (!nv.nombre || !nv.apellido) return;
@@ -48,9 +50,9 @@ export default function VoluntariosClient() {
       telefono: nv.telefono || null, email: nv.email || null,
       notas: nv.notas || null, areas: nv.areas,
     });
-    if (error) return flash("Error: " + error.message);
+    if (error) return toast("Error: " + error.message, "error");
     setNv({ nombre: "", apellido: "", telefono: "", email: "", notas: "", areas: [] });
-    flash("Voluntario agregado ✓");
+    toast("Voluntario agregado exitosamente.", "success");
     loadVols();
   }
 
@@ -69,9 +71,9 @@ export default function VoluntariosClient() {
       service_id: serviceId, volunteer_id: adding.volId,
       ministerio: adding.ministerio, rol: adding.rol, estado: "confirmado",
     }, { onConflict: "service_id,volunteer_id,ministerio" });
-    if (error) { flash("Error: " + error.message); return; }
+    if (error) { toast("Error: " + error.message, "error"); return; }
     setAdding(null);
-    flash("Voluntario asignado ✓");
+    toast("Voluntario asignado al servicio.", "success");
     loadSvols(serviceId);
   }
 
@@ -82,7 +84,7 @@ export default function VoluntariosClient() {
 
   async function removeSvol(id: string) {
     await supabase.from("service_volunteers").delete().eq("id", id);
-    flash("Eliminado ✓");
+    toast("Voluntario eliminado del servicio.", "warning");
     loadSvols(serviceId);
   }
 
@@ -227,11 +229,7 @@ export default function VoluntariosClient() {
         </div>
       )}
 
-      {msg && (
-        <p className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-xl2 bg-ink px-4 py-2 text-sm text-white shadow-lg">
-          {msg}
-        </p>
-      )}
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

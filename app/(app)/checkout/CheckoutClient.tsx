@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/useToast";
+import { ToastContainer } from "@/components/Toast";
 import { MIN_COLOR, MIN_LABEL, type AuthorizedPickup, type Ministerio } from "@/lib/types";
 
 interface CheckoutRow {
@@ -14,13 +16,13 @@ export default function CheckoutClient() {
   const supabase = createClient();
   const [codigo, setCodigo] = useState("");
   const [rows, setRows] = useState<CheckoutRow[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
+  const { toasts, toast, dismiss } = useToast();
   const [searched, setSearched] = useState(false);
   const [checkoutNombre, setCheckoutNombre] = useState<Record<string, string>>({});
 
   async function buscar() {
     const code = codigo.trim().toUpperCase();
-    setMsg(null); setSearched(true);
+     setSearched(true);
     if (!code) return;
     const { data: checkins } = await supabase
       .from("checkins")
@@ -48,16 +50,16 @@ export default function CheckoutClient() {
 
   async function retirar(row: CheckoutRow) {
     const nombre = checkoutNombre[row.id] ?? "";
-    setMsg(null);
+    
     const { error } = await supabase.rpc("do_checkout", {
       p_checkin_id: row.id,
       p_codigo: codigo.trim().toUpperCase(),
       p_guardian_id: row.checkin_guardian_id,
       p_checkout_nombre: nombre || null,
     });
-    if (error) { setMsg("❌ " + error.message); return; }
+    if (error) { toast("Error: " + error.message, "error"); return; }
     setRows((prev) => prev.filter((r) => r.id !== row.id));
-    setMsg(`✅ ${row.child.nombre} ${row.child.apellido} retirado.`);
+    toast(`${row.child.nombre} ${row.child.apellido} retirado exitosamente.`, "success");
   }
 
   return (
@@ -165,7 +167,7 @@ export default function CheckoutClient() {
         })}
       </div>
 
-      {msg && <p className="mt-4 text-center font-medium">{msg}</p>}
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
