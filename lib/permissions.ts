@@ -1,15 +1,17 @@
+/* Íconos: clases Tabler outline (se renderizan como <i class="ti {icon}"> en el Sidebar) */
 export const MODULES = [
-  { key: "panoramica",  label: "Panorámica",   href: "/panoramica",  icon: "🌐" },
-  { key: "dashboard",   label: "Inicio",        href: "/dashboard",   icon: "🏠" },
-  { key: "checkin",     label: "Check-in",      href: "/checkin",     icon: "🎟️" },
-  { key: "checkout",    label: "Retiro",        href: "/checkout",    icon: "✅" },
-  { key: "familias",    label: "Familias",      href: "/familias",    icon: "👨‍👩‍👧" },
-  { key: "voluntarios", label: "Voluntarios",   href: "/voluntarios", icon: "🤝" },
-  { key: "reportes",    label: "Reportes",      href: "/reportes",    icon: "📊" },
-  { key: "servicios",   label: "Servicios",     href: "/servicios",   icon: "📅" },
-  { key: "campuses",    label: "Campus",        href: "/campuses",    icon: "🏢" },
-  { key: "usuarios",    label: "Usuarios",      href: "/usuarios",    icon: "🔑" },
+  { key: "panoramica",  label: "Panorámica",  href: "/panoramica",  icon: "ti-globe"            },
+  { key: "dashboard",   label: "Inicio",       href: "/dashboard",   icon: "ti-layout-dashboard" },
+  { key: "checkin",     label: "Check-in",     href: "/checkin",     icon: "ti-ticket"           },
+  { key: "checkout",    label: "Retiro",       href: "/checkout",    icon: "ti-door-exit"        },
+  { key: "familias",    label: "Familias",     href: "/familias",    icon: "ti-users-group"      },
+  { key: "voluntarios", label: "Voluntarios",  href: "/voluntarios", icon: "ti-heart-handshake"  },
+  { key: "reportes",    label: "Reportes",     href: "/reportes",    icon: "ti-chart-bar"        },
+  { key: "servicios",   label: "Servicios",    href: "/servicios",   icon: "ti-calendar-event"   },
+  { key: "campuses",    label: "Campus",       href: "/campuses",    icon: "ti-building"         },
+  { key: "usuarios",    label: "Usuarios",     href: "/usuarios",    icon: "ti-key"              },
 ] as const;
+
 export type ModuleKey = (typeof MODULES)[number]["key"];
 export interface RolePermission { rol: string; modulo: string; ver: boolean; gestionar: boolean; }
 export interface ProfileRow { id: string; nombre: string | null; email: string | null; rol: string; activo: boolean; campus_id: string | null; }

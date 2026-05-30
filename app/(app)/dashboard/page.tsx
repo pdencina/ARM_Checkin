@@ -265,7 +265,7 @@ export default async function DashboardPage() {
               const col = m ? MIN_COLOR[m] : null;
               return (
                 <li key={p.id} className="flex items-center gap-3 px-5 py-2.5">
-                  {p.primera_vez && <span className="text-xs text-brand-dark font-medium">⭐ Nuevo</span>}
+                  {p.primera_vez && <span className="badge bg-brand-soft text-brand text-[9px]">Nuevo</span>}
                   {col && <span className={`badge ${col.bg} ${col.text} text-xs`}>{MIN_LABEL[m]}</span>}
                   <span className="font-medium">{p.child?.nombre} {p.child?.apellido}</span>
                   {p.child?.alergias && <span className="badge bg-red-50 text-red-700 text-xs">⚠ {p.child.alergias}</span>}

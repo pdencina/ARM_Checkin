@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -10,27 +9,23 @@ export interface ToastData {
   type: ToastType;
 }
 
-const ICONS: Record<ToastType, string> = {
-  success: "ti-circle-check",
-  error:   "ti-circle-x",
-  info:    "ti-info-circle",
-  warning: "ti-alert-triangle",
+const CONFIG: Record<ToastType, { icon: string; border: string; iconColor: string }> = {
+  success: { icon: "ti-circle-check",    border: "border-l-kids",      iconColor: "text-kids"      },
+  error:   { icon: "ti-circle-x",        border: "border-l-sensorial", iconColor: "text-sensorial" },
+  info:    { icon: "ti-info-circle",     border: "border-l-brand-blue",iconColor: "text-brand-blue"},
+  warning: { icon: "ti-alert-triangle",  border: "border-l-tweens",    iconColor: "text-tweens"    },
 };
 
-const STYLES: Record<ToastType, { bg: string; icon: string; border: string }> = {
-  success: { bg: "bg-white",  icon: "text-kids",       border: "border-l-4 border-l-kids" },
-  error:   { bg: "bg-white",  icon: "text-brand-dark",  border: "border-l-4 border-l-brand" },
-  info:    { bg: "bg-white",  icon: "text-tweens",      border: "border-l-4 border-l-tweens" },
-  warning: { bg: "bg-white",  icon: "text-sensorial",   border: "border-l-4 border-l-sensorial" },
-};
-
-function Toast({ toast, onDismiss }: { toast: ToastData; onDismiss: (id: number) => void }) {
+function SingleToast({ toast, onDismiss }: { toast: ToastData; onDismiss: (id: number) => void }) {
   const [visible, setVisible] = useState(false);
-  const s = STYLES[toast.type];
+  const cfg = CONFIG[toast.type];
 
   useEffect(() => {
     const t1 = setTimeout(() => setVisible(true), 10);
-    const t2 = setTimeout(() => { setVisible(false); setTimeout(() => onDismiss(toast.id), 300); }, 2800);
+    const t2 = setTimeout(() => {
+      setVisible(false);
+      setTimeout(() => onDismiss(toast.id), 280);
+    }, 2800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [toast.id, onDismiss]);
 
@@ -39,21 +34,22 @@ function Toast({ toast, onDismiss }: { toast: ToastData; onDismiss: (id: number)
       role="alert"
       aria-live="assertive"
       className={`
-        flex items-start gap-3 rounded-xl2 shadow-lg px-4 py-3 pr-3
-        border border-line ${s.bg} ${s.border}
-        transition-all duration-300
-        ${visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}
+        flex items-start gap-3 rounded-xl3 bg-white
+        border border-line border-l-4 ${cfg.border}
+        px-4 py-3 pr-3 shadow-sm
+        transition-all duration-280
+        ${visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}
       `}
-      style={{ minWidth: 260, maxWidth: 380, pointerEvents: "all" }}
+      style={{ minWidth: 260, maxWidth: 360, pointerEvents: "all" }}
     >
-      <i className={`ti ${ICONS[toast.type]} ${s.icon} text-xl shrink-0 mt-0.5`} aria-hidden="true" />
+      <i className={`ti ${cfg.icon} ${cfg.iconColor} mt-0.5 shrink-0`} style={{ fontSize: 18 }} aria-hidden="true" />
       <p className="flex-1 text-sm font-medium text-ink leading-snug">{toast.msg}</p>
       <button
-        onClick={() => { setVisible(false); setTimeout(() => onDismiss(toast.id), 300); }}
-        className="text-muted hover:text-ink mt-0.5 shrink-0"
+        onClick={() => { setVisible(false); setTimeout(() => onDismiss(toast.id), 280); }}
+        className="mt-0.5 shrink-0 text-muted hover:text-ink"
         aria-label="Cerrar"
       >
-        <i className="ti ti-x text-sm" aria-hidden="true" />
+        <i className="ti ti-x" style={{ fontSize: 14 }} aria-hidden="true" />
       </button>
     </div>
   );
@@ -67,7 +63,7 @@ export function ToastContainer({ toasts, onDismiss }: { toasts: ToastData[]; onD
       style={{ pointerEvents: "none" }}
     >
       {toasts.map((t) => (
-        <Toast key={t.id} toast={t} onDismiss={onDismiss} />
+        <SingleToast key={t.id} toast={t} onDismiss={onDismiss} />
       ))}
     </div>
   );

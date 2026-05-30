@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { NavItem } from "@/lib/permissions";
 
+/* Módulos que van en la sección "Administración" */
+const ADMIN_KEYS = ["servicios", "campuses", "usuarios", "panoramica"];
+
 export default function Sidebar({
   nav, email, rolNombre, campusNombre, isSuperAdmin,
 }: {
@@ -18,80 +21,95 @@ export default function Sidebar({
     window.location.href = "/login";
   }
 
-  // Separar panorámica/campuses del resto
-  const globalNav = nav.filter((n) => ["panoramica","campuses"].includes(n.key));
-  const campusNav = nav.filter((n) => !["panoramica","campuses"].includes(n.key));
+  const ministerioNav = nav.filter((n) => !ADMIN_KEYS.includes(n.key));
+  const adminNav       = nav.filter((n) => ADMIN_KEYS.includes(n.key));
+
+  const initials = email.slice(0, 2).toUpperCase();
 
   return (
-    <aside className="no-print flex w-60 shrink-0 flex-col border-r border-line bg-white px-3 py-5">
-      <div className="mb-5 flex items-center gap-2 px-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl2 bg-brand-soft">🧒</span>
-        <div className="leading-tight min-w-0">
-          <p className="font-semibold">ARM Kids</p>
-          <p className="truncate text-xs text-muted">&amp; Tweens</p>
+    <aside className="no-print flex w-56 shrink-0 flex-col border-r border-line bg-white">
+      {/* Logo */}
+      <div className="border-b border-line px-4 py-4">
+        <div className="mb-3 flex items-center gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand">
+            <i className="ti ti-triangle text-white" style={{ fontSize: 14 }} aria-hidden="true" />
+          </div>
+          <div className="leading-tight">
+            <p className="text-sm font-semibold tracking-tight text-ink">ARM Kids</p>
+            <p className="text-xs text-muted">&amp; Tweens</p>
+          </div>
         </div>
+
+        {/* Campus badge */}
+        {campusNombre && (
+          <div className="flex items-center gap-2 rounded-xl2 bg-brand-soft px-2.5 py-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-kids" />
+            <span className="truncate text-xs font-medium text-brand">{campusNombre}</span>
+          </div>
+        )}
+        {isSuperAdmin && !campusNombre && (
+          <div className="flex items-center gap-2 rounded-xl2 bg-tweens-soft px-2.5 py-1.5">
+            <i className="ti ti-globe text-tweens" style={{ fontSize: 13 }} aria-hidden="true" />
+            <span className="text-xs font-medium text-tweens-ink">Todos los campus</span>
+          </div>
+        )}
       </div>
 
-      {/* Campus badge */}
-      {campusNombre && (
-        <div className="mb-4 mx-2 flex items-center gap-2 rounded-xl2 bg-paper px-3 py-2">
-          <span className="text-base">🏢</span>
-          <span className="truncate text-xs font-medium text-muted">{campusNombre}</span>
-        </div>
-      )}
-      {isSuperAdmin && !campusNombre && (
-        <div className="mb-4 mx-2 flex items-center gap-2 rounded-xl2 bg-tweens-soft px-3 py-2">
-          <span className="text-base">🌐</span>
-          <span className="text-xs font-medium text-tweens-ink">Todos los campus</span>
-        </div>
-      )}
-
-      <nav className="flex flex-1 flex-col gap-1">
-        {/* Global (panorámica + campus) — solo super admin */}
-        {globalNav.length > 0 && (
+      {/* Navegación */}
+      <nav className="flex flex-1 flex-col gap-0.5 px-2 py-3">
+        {ministerioNav.length > 0 && (
           <>
-            {globalNav.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link key={item.href} href={item.href}
-                  className={`flex items-center gap-3 rounded-xl2 px-3 py-2.5 text-sm font-medium transition ${active ? "bg-tweens-soft text-tweens-ink" : "text-ink hover:bg-paper"}`}>
-                  <span className="text-lg">{item.icon}</span>{item.label}
-                </Link>
-              );
-            })}
-            {campusNav.length > 0 && (
-              <div className="my-2 flex items-center gap-2 px-2">
-                <div className="h-px flex-1 bg-line" />
-                <span className="text-xs text-muted">Mi campus</span>
-                <div className="h-px flex-1 bg-line" />
-              </div>
-            )}
+            <span className="section-label">Ministerio</span>
+            {ministerioNav.map((item) => (
+              <NavItem key={item.href} item={item} active={pathname === item.href} />
+            ))}
           </>
         )}
-
-        {/* Campus nav */}
-        {campusNav.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 rounded-xl2 px-3 py-2.5 text-sm font-medium transition ${active ? "bg-brand-soft text-brand-dark" : "text-ink hover:bg-paper"}`}>
-              <span className="text-lg">{item.icon}</span>{item.label}
-            </Link>
-          );
-        })}
+        {adminNav.length > 0 && (
+          <>
+            <span className="section-label">Administración</span>
+            {adminNav.map((item) => (
+              <NavItem key={item.href} item={item} active={pathname === item.href} />
+            ))}
+          </>
+        )}
       </nav>
 
-      <div className="mt-4 border-t border-line pt-4">
-        {rolNombre && (
-          <span className={`mb-2 ml-2 inline-block rounded-lg px-2 py-0.5 text-xs font-medium ${isSuperAdmin ? "bg-tweens-soft text-tweens-ink" : "bg-paper text-muted"}`}>
-            {rolNombre}
-          </span>
-        )}
-        <p className="truncate px-2 text-xs text-muted">{email}</p>
-        <button onClick={logout} className="mt-2 w-full rounded-xl2 px-3 py-2 text-left text-sm text-muted hover:bg-paper">
-          Cerrar sesión
-        </button>
+      {/* Footer usuario */}
+      <div className="border-t border-line px-3 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-semibold text-brand">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-ink">{email}</p>
+            <p className="text-[10px] text-muted">{rolNombre}</p>
+          </div>
+          <button
+            onClick={logout}
+            aria-label="Cerrar sesión"
+            className="rounded text-muted hover:text-ink transition"
+          >
+            <i className="ti ti-logout" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </aside>
+  );
+}
+
+function NavItem({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      className={`flex items-center gap-2.5 rounded-r-xl2 border-l-2 px-2.5 py-2 text-sm transition
+        ${active
+          ? "border-l-brand bg-brand-soft font-medium text-brand"
+          : "border-l-transparent text-muted hover:bg-paper hover:text-ink"
+        }`}
+    >
+      <i className={`ti ${item.icon}`} style={{ fontSize: 17, width: 18, textAlign: "center" }} aria-hidden="true" />
+      {item.label}
+    </Link>
   );
 }

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,50 +18,61 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    // Pequeña espera para que la cookie de sesión se propague antes de navegar
-    // (evita el loop de login con Supabase + middleware).
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 400);
+    setTimeout(() => { window.location.href = "/dashboard"; }, 400);
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="card w-full max-w-sm p-7">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl2 bg-brand-soft text-2xl">
-            🧒
+    <main className="flex min-h-screen items-center justify-center bg-paper px-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl3 bg-brand shadow-sm">
+            <i className="ti ti-triangle text-white" style={{ fontSize: 22 }} aria-hidden="true" />
           </div>
-          <h1 className="text-xl font-semibold">ARM Kids &amp; Tweens</h1>
-          <p className="text-sm text-muted">Estación de check-in</p>
+          <div className="text-center">
+            <h1 className="text-lg font-semibold tracking-tight text-ink">ARM Kids &amp; Tweens</h1>
+            <p className="text-sm text-muted">Sistema de check-in</p>
+          </div>
         </div>
 
-        <label className="mb-1 block text-sm font-medium">Correo</label>
-        <input
-          className="field mb-4"
-          type="email"
-          autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="staff@armerch.com"
-        />
+        <div className="card px-6 py-7 shadow-sm">
+          <div className="space-y-4">
+            <div>
+              <label className="section-label mb-1">Correo electrónico</label>
+              <input
+                className="field"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nombre@ejemplo.com"
+              />
+            </div>
+            <div>
+              <label className="section-label mb-1">Contraseña</label>
+              <input
+                className="field"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
 
-        <label className="mb-1 block text-sm font-medium">Contraseña</label>
-        <input
-          className="field mb-5"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-          placeholder="••••••••"
-        />
+          {error && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl2 bg-sensorial-soft px-3 py-2 text-sm text-sensorial-ink">
+              <i className="ti ti-alert-circle shrink-0" style={{ fontSize: 16 }} aria-hidden="true" />
+              {error}
+            </div>
+          )}
 
-        {error && <p className="mb-4 text-sm text-brand-dark">{error}</p>}
-
-        <button className="btn-brand w-full" onClick={onSubmit} disabled={loading}>
-          {loading ? "Ingresando…" : "Ingresar"}
-        </button>
+          <button className="btn-brand mt-5 w-full" onClick={onSubmit} disabled={loading}>
+            {loading ? "Iniciando sesión…" : "Iniciar sesión"}
+          </button>
+        </div>
       </div>
     </main>
   );

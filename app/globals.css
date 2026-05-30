@@ -7,57 +7,68 @@
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
 }
 
-@layer components {
-  .card {
-    @apply rounded-xl2 border border-line bg-white;
+@layer base {
+  body {
+    @apply bg-paper text-ink;
+    font-feature-settings: "cv02","cv03","cv04","cv11";
   }
+  h1 { @apply text-xl font-semibold tracking-tight text-ink; }
+  h2 { @apply text-base font-semibold text-ink; }
+}
+
+@layer components {
+
+  /* ─── Tarjetas ─────────────────────────────────── */
+  .card {
+    @apply rounded-xl3 border border-line bg-white;
+  }
+
+  /* ─── Botones ──────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl2 px-4 py-2.5 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl2
+           px-4 py-2 text-sm font-medium transition-all
+           active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-brand {
-    @apply btn bg-brand text-white hover:bg-brand-dark;
+    @apply btn bg-brand text-white hover:bg-brand-dark shadow-sm;
   }
   .btn-ghost {
     @apply btn border border-line bg-white text-ink hover:bg-paper;
   }
+
+  /* ─── Campos ───────────────────────────────────── */
   .field {
-    @apply w-full rounded-xl2 border border-line bg-white px-3.5 py-2.5 outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20;
+    @apply w-full rounded-xl2 border border-line bg-white
+           px-3 py-2 text-sm text-ink outline-none
+           placeholder:text-muted
+           focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15
+           transition;
   }
+  select.field { @apply cursor-pointer; }
+
+  /* ─── Badges ───────────────────────────────────── */
   .badge {
-    @apply inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium;
+    @apply inline-flex items-center gap-1 rounded text-[10px]
+           font-semibold tracking-label uppercase px-2 py-0.5;
+  }
+
+  /* ─── Etiqueta de sección (sidebar / tablas) ───── */
+  .section-label {
+    @apply block text-[10px] font-semibold tracking-label uppercase text-muted
+           px-2 py-1.5 mt-1;
   }
 }
 
-/* ---------- Impresión de etiquetas (Brother QL-820NWB / DK-2205 62mm) ---------- */
+/* ─── Print: etiquetas Brother QL-820NWB (62 mm continuo) ─── */
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  body {
-    background: #fff;
-  }
-  .print-wrap {
-    background: #fff !important;
-    padding: 0 !important;
-    min-height: 0 !important;
-  }
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .print-wrap { background: #fff !important; padding: 0 !important; min-height: 0 !important; }
   .label {
-    width: 62mm !important;
-    height: 70mm !important;
-    min-height: 70mm !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    box-sizing: border-box;
-    page-break-after: always;
-    break-after: page;
-    overflow: hidden;
+    width: 62mm !important; height: 50mm !important; min-height: 50mm !important;
+    margin: 0 !important; border-radius: 0 !important; box-sizing: border-box;
+    page-break-after: always; break-after: page; overflow: hidden;
   }
-  .label:last-child {
-    page-break-after: auto;
-  }
+  .label:last-child { page-break-after: auto; }
 }
-
-@page {
-  size: 62mm 70mm;
-  margin: 0;
-}
+@page { size: 62mm 50mm; margin: 0; }

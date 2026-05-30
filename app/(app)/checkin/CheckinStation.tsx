@@ -185,14 +185,15 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
                       {c.alergias && <p className="text-sm text-red-700">⚠️ {c.alergias}</p>}
                     </div>
                     <span className={`badge ${col.bg} ${col.text}`}>{MIN_LABEL[c.ministerio]}</span>
-                    <span className={`text-2xl ${on ? col.text : "text-line"}`}>{on ? "☑" : "☐"}</span>
+                    <i className={`ti ${on ? "ti-square-check" : "ti-square"} text-xl ${on ? col.text : "text-line"}`} aria-hidden="true" />
                   </button>
                 );
               })}
             </div>
           )}
-          <button className="btn-brand mt-5 w-full text-base" onClick={registrar} disabled={busy || selected.size === 0}>
-            {busy ? "Registrando…" : `🖨️ Registrar e imprimir (${selected.size})`}
+          <button className="btn-brand mt-5 w-full text-base flex items-center justify-center gap-2" onClick={registrar} disabled={busy || selected.size === 0}>
+              <i className="ti ti-printer" style={{fontSize:16}} aria-hidden="true" />
+            {busy ? "Registrando…" : `Registrar e imprimir (${selected.size})`}
           </button>
         </div>
       )}
