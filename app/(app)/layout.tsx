@@ -15,24 +15,30 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       redirect("/login");
     }
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="card max-w-md p-7 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl2 bg-brand-soft text-2xl">🔒</div>
-          <h1 className="mb-2 text-xl font-semibold">
-            {!access.hasProfile ? "Tu cuenta aún no tiene un rol" : !access.activo ? "Tu cuenta está desactivada" : "Sin acceso"}
+      <main className="flex min-h-screen items-center justify-center bg-paper px-4">
+        <div className="card max-w-md px-7 py-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl3 bg-brand-soft">
+            <i className="ti ti-lock text-brand" style={{ fontSize: 22 }} aria-hidden="true" />
+          </div>
+          <h1 className="mb-2 text-lg font-semibold">
+            {!access.hasProfile ? "Sin rol asignado" : !access.activo ? "Cuenta desactivada" : "Sin acceso"}
           </h1>
-          <p className="mb-5 text-muted">
-            {!access.activo ? "Un administrador debe reactivar tu cuenta." : "Pídele a un administrador que te asigne un rol."}
+          <p className="mb-5 text-sm text-muted">
+            {!access.activo
+              ? "Un administrador debe reactivar tu cuenta."
+              : "Pídele a un administrador que te asigne un rol."}
           </p>
-          <p className="mb-5 text-sm text-muted">{access.email}</p>
-          <form action={logout}><button className="btn-ghost w-full">Cerrar sesión</button></form>
+          <p className="mb-6 rounded-xl2 bg-paper px-3 py-2 font-mono text-xs text-muted">{access.email}</p>
+          <form action={logout}>
+            <button className="btn-ghost w-full">Cerrar sesión</button>
+          </form>
         </div>
       </main>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-paper">
       <Sidebar
         nav={access.nav}
         email={access.email}
@@ -40,7 +46,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         campusNombre={access.campusNombre}
         isSuperAdmin={access.isSuperAdmin}
       />
-      <main className="flex-1 px-6 py-7 md:px-10">{children}</main>
+      {/* El main se ajusta automáticamente cuando el sidebar cambia de ancho */}
+      <main className="min-w-0 flex-1 px-6 py-7 transition-all duration-200 md:px-10">
+        {children}
+      </main>
     </div>
   );
 }
