@@ -31,8 +31,9 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isLogin = path === "/login";
+  const isPublic = path.startsWith("/mi-qr"); // página pública de QR familiar
 
-  if (!user && !isLogin) {
+  if (!user && !isLogin && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

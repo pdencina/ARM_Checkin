@@ -12,10 +12,18 @@ export default function FamiliasClient() {
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState<string | null>(null);
   const [children, setChildren] = useState<Record<string, Child[]>>({});
   const [pickups, setPickups] = useState<Record<string, AuthorizedPickup[]>>({});
   const [childTab, setChildTab] = useState<Record<string, "info" | "medico" | "autorizados">>({});
   const [g, setG] = useState({ nombre: "", apellido: "", telefono: "", email: "" });
+
+  function copyLink(guardianId: string) {
+    const url = `${window.location.origin}/mi-qr/${guardianId}`;
+    navigator.clipboard.writeText(url);
+    setLinkCopied(guardianId);
+    setTimeout(() => setLinkCopied(null), 2000);
+  }
 
   async function loadGuardians() {
     const { data } = await supabase.from("guardians").select("*").order("apellido");
@@ -107,8 +115,28 @@ export default function FamiliasClient() {
                         QR de {gu.nombre} {gu.apellido}
                       </p>
                       <p className="mt-1 max-w-[220px] text-xs text-muted">
-                        Al escanear este código en la estación de check-in, los hijos de esta familia se cargan automáticamente.
+                        Al escanear este código, los hijos de la familia se cargan automáticamente.
                       </p>
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-xs font-medium text-muted">Link del papá (guardar en favoritos)</p>
+                      <div className="flex items-center gap-2 rounded-xl2 bg-paper px-2.5 py-2">
+                        <code className="flex-1 truncate text-[11px] text-brand">
+                          {typeof window !== "undefined"
+                            ? `${window.location.origin}/mi-qr/${gu.id}`
+                            : `/mi-qr/${gu.id}`}
+                        </code>
+                        <button
+                          onClick={() => copyLink(gu.id)}
+                          className={`flex shrink-0 items-center gap-1 rounded-xl2 px-2 py-1 text-xs font-medium transition
+                            ${linkCopied === gu.id
+                              ? "bg-kids-soft text-kids-ink"
+                              : "bg-brand-soft text-brand hover:bg-brand hover:text-white"}`}
+                        >
+                          <i className={`ti ${linkCopied === gu.id ? "ti-check" : "ti-copy"}`} style={{fontSize:12}} aria-hidden="true" />
+                          {linkCopied === gu.id ? "¡Listo!" : "Copiar"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
