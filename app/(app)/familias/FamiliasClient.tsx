@@ -48,22 +48,6 @@ export default function FamiliasClient() {
     if (!children[gid]) await loadChildren(gid);
   }
 
-  function buildWaLink(gu: Guardian): string {
-    const num = (gu.telefono ?? "").replace(/[^0-9]/g, "");
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/checkin?g=${gu.id}`;
-    const msg = [
-      `¡Hola ${gu.nombre}! 👋`,
-      `Te compartimos tu QR de acceso para ARM Check-in.`,
-      ``,
-      `Preséntalo en nuestra estación de entrada para registrar a tus hijos más rápido.`,
-      ``,
-      `🔗 ${url}`,
-      ``,
-      `¡Nos vemos en el encuentro! 🙌`,
-    ].join("\n");
-    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
-  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -126,17 +110,6 @@ export default function FamiliasClient() {
                         Al escanear este código en la estación de check-in, los hijos de esta familia se cargan automáticamente.
                       </p>
                     </div>
-                    {gu.telefono && (
-                      <a
-                        href={buildWaLink(gu)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-ghost flex items-center gap-2 text-sm"
-                      >
-                        <i className="ti ti-brand-whatsapp" style={{ fontSize: 16 }} aria-hidden="true" />
-                        Enviar QR por WhatsApp
-                      </a>
-                    )}
                   </div>
                 </div>
               </div>
