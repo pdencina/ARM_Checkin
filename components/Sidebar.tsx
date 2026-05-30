@@ -63,8 +63,7 @@ export default function Sidebar({
               <i className="ti ti-triangle text-white" style={{ fontSize: 14 }} aria-hidden="true" />
             </div>
             <div className="flex-1 leading-tight">
-              <p className="text-sm font-semibold tracking-tight text-ink">ARM Kids</p>
-              <p className="text-xs text-muted">&amp; Tweens</p>
+              <p className="text-sm font-semibold tracking-tight text-ink">ARM Check-in</p>
             </div>
             <button
               onClick={toggle}
@@ -97,14 +96,14 @@ export default function Sidebar({
       {open && (
         <div className="px-4 pt-3 pb-1">
           {campusNombre ? (
-            <div className="flex items-center gap-2 rounded-xl2 bg-brand-soft px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-xl2 bg-brand-soft px-2 py-1">
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-kids" />
-              <span className="truncate text-xs font-medium text-brand">{campusNombre}</span>
+              <span className="truncate text-[11px] font-medium text-brand">{campusNombre}</span>
             </div>
           ) : isSuperAdmin ? (
-            <div className="flex items-center gap-2 rounded-xl2 bg-tweens-soft px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-xl2 bg-tweens-soft px-2 py-1">
               <i className="ti ti-globe text-tweens" style={{ fontSize: 13 }} aria-hidden="true" />
-              <span className="text-xs font-medium text-tweens-ink">Todos los campus</span>
+              <span className="text-[11px] font-medium text-tweens-ink">Todos los campus</span>
             </div>
           ) : null}
         </div>
@@ -200,8 +199,8 @@ function RailItem({
   const base = `flex items-center transition-all duration-150 text-sm
     border-l-2 cursor-pointer select-none`;
 
-  const activeClass = "border-l-brand bg-brand-soft text-brand font-medium";
-  const idleClass   = "border-l-transparent text-muted hover:bg-paper hover:text-ink";
+  const activeClass = "border-l-[3px] border-l-brand bg-brand-soft text-brand font-medium";
+  const idleClass   = "border-l-[3px] border-l-transparent text-muted hover:bg-paper hover:text-ink";
 
   if (open) {
     return (

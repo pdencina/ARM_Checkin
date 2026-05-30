@@ -30,8 +30,8 @@ export default function LoginPage() {
             <i className="ti ti-triangle text-white" style={{ fontSize: 22 }} aria-hidden="true" />
           </div>
           <div className="text-center">
-            <h1 className="text-lg font-semibold tracking-tight text-ink">ARM Kids &amp; Tweens</h1>
-            <p className="text-sm text-muted">Sistema de check-in</p>
+            <h1 className="text-lg font-semibold tracking-tight text-ink">ARM Check-in</h1>
+            <p className="text-sm text-muted">Sistema ministerial ARM Global</p>
           </div>
         </div>
 
