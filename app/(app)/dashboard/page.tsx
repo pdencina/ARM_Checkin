@@ -113,7 +113,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Inicio</h1>
           <p className="text-muted">
-            {servicio ? (<>Servicio activo: <span className="font-medium text-ink">{servicio.nombre}</span> · {servicio.campus}</>) : "Sin servicio activo."}
+            {servicio ? (<>Servicio activo: <span className="font-medium text-ink">{servicio.nombre}</span> · {servicio.campus}</>) : "Sin encuentro activo."}
           </p>
         </div>
         <Link href="/checkin" className="btn-brand">Ir a check-in</Link>

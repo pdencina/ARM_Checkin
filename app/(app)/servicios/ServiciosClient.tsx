@@ -27,13 +27,13 @@ export default function ServiciosClient() {
       es_recurrente: s.es_recurrente, dia_semana: s.es_recurrente ? s.dia_semana : null,
     });
     setS({ nombre: "", fecha: "", hora: "", campus: "Principal", es_recurrente: false, dia_semana: 0 });
-    toast("Servicio creado exitosamente.", "success");
+    toast("Encuentro creado exitosamente.", "success");
     load();
   }
 
   async function toggle(svc: Service) {
     await supabase.from("services").update({ activo: !svc.activo }).eq("id", svc.id);
-    toast(svc.activo ? "Servicio desactivado." : "Servicio activado.", svc.activo ? "warning" : "success");
+    toast(svc.activo ? "Encuentro desactivado." : "Encuentro activado.", svc.activo ? "warning" : "success");
     load();
   }
 
@@ -44,12 +44,12 @@ export default function ServiciosClient() {
     base.setDate(base.getDate() + diff);
     const proxFecha = base.toISOString().slice(0, 10);
     const existe = list.find((x) => x.fecha === proxFecha && x.nombre === svc.nombre);
-    if (existe) { toast("Ya existe un servicio con ese nombre y fecha.", "warning"); return; }
+    if (existe) { toast("Ya existe un encuentro con esa fecha.", "warning"); return; }
     await supabase.from("services").insert({
       nombre: svc.nombre, fecha: proxFecha, hora: svc.hora_default ?? svc.hora,
       campus: svc.campus, es_recurrente: true, dia_semana: svc.dia_semana,
     });
-    toast("Próximo servicio creado.", "success");
+    toast("Próximo encuentro creado.", "success");
     load();
   }
 
@@ -62,7 +62,7 @@ export default function ServiciosClient() {
       <div className="card mb-6 p-5">
         <p className="mb-3 font-medium">Nuevo servicio</p>
         <div className="grid grid-cols-2 gap-2">
-          <input className="field col-span-2" placeholder="Nombre (ej. Culto Domingo AM)" value={s.nombre} onChange={(e) => setS({ ...s, nombre: e.target.value })} />
+          <input className="field col-span-2" placeholder="Nombre (ej. Encuentro Domingo AM)" value={s.nombre} onChange={(e) => setS({ ...s, nombre: e.target.value })} />
           <input className="field" type="date" value={s.fecha} onChange={(e) => setS({ ...s, fecha: e.target.value })} />
           <input className="field" type="time" value={s.hora} onChange={(e) => setS({ ...s, hora: e.target.value })} />
           <input className="field col-span-2" list="campuses-list" placeholder="Campus (ej. Principal, Sur, Norte)" value={s.campus} onChange={(e) => setS({ ...s, campus: e.target.value })} />

@@ -7,7 +7,7 @@ export const MODULES = [
   { key: "familias",    label: "Familias",     href: "/familias",    icon: "ti-users-group"      },
   { key: "voluntarios", label: "Voluntarios",  href: "/voluntarios", icon: "ti-heart-handshake"  },
   { key: "reportes",    label: "Reportes",     href: "/reportes",    icon: "ti-chart-bar"        },
-  { key: "servicios",   label: "Servicios",    href: "/servicios",   icon: "ti-calendar-event"   },
+  { key: "servicios",   label: "Encuentros",    href: "/servicios",   icon: "ti-calendar-event"   },
   { key: "campuses",    label: "Campus",       href: "/campuses",    icon: "ti-building"         },
   { key: "usuarios",    label: "Usuarios",     href: "/usuarios",    icon: "ti-key"              },
 ] as const;

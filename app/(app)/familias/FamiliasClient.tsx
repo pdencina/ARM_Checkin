@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import QRCodeDisplay from "@/components/QRCodeDisplay";
 import { useToast } from "@/lib/useToast";
 import { ToastContainer } from "@/components/Toast";
 import { MIN_COLOR, MIN_LABEL, type AuthorizedPickup, type Child, type Guardian, type Ministerio } from "@/lib/types";
@@ -10,6 +11,7 @@ export default function FamiliasClient() {
   const { toasts, toast, dismiss } = useToast();
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [open, setOpen] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState<string | null>(null);
   const [children, setChildren] = useState<Record<string, Child[]>>({});
   const [pickups, setPickups] = useState<Record<string, AuthorizedPickup[]>>({});
   const [childTab, setChildTab] = useState<Record<string, "info" | "medico" | "autorizados">>({});
@@ -46,6 +48,23 @@ export default function FamiliasClient() {
     if (!children[gid]) await loadChildren(gid);
   }
 
+  function buildWaLink(gu: Guardian): string {
+    const num = (gu.telefono ?? "").replace(/[^0-9]/g, "");
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/checkin?g=${gu.id}`;
+    const msg = [
+      `¡Hola ${gu.nombre}! 👋`,
+      `Te compartimos tu QR de acceso para ARM Check-in.`,
+      ``,
+      `Preséntalo en nuestra estación de entrada para registrar a tus hijos más rápido.`,
+      ``,
+      `🔗 ${url}`,
+      ``,
+      `¡Nos vemos en el encuentro! 🙌`,
+    ].join("\n");
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-5 text-2xl font-semibold">Familias</h1>
@@ -64,11 +83,66 @@ export default function FamiliasClient() {
       <div className="space-y-2">
         {guardians.map((gu) => (
           <div key={gu.id} className="card overflow-hidden">
-            <button onClick={() => expand(gu.id)} className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-paper">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-medium text-brand-dark">{gu.nombre.charAt(0)}{gu.apellido.charAt(0)}</div>
-              <span className="flex-1 font-medium">{gu.nombre} {gu.apellido}</span>
-              <span className="text-sm text-muted">{gu.telefono}</span>
-            </button>
+            {/* Fila de la familia */}
+            <div className="flex items-center">
+              <button onClick={() => expand(gu.id)} className="flex flex-1 items-center gap-3 px-5 py-3 text-left hover:bg-paper">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-medium text-brand-dark">
+                  {gu.nombre.charAt(0)}{gu.apellido.charAt(0)}
+                </div>
+                <span className="flex-1 font-medium">{gu.nombre} {gu.apellido}</span>
+                <span className="text-sm text-muted">{gu.telefono}</span>
+              </button>
+              {/* Botón QR */}
+              <button
+                onClick={() => setQrOpen(qrOpen === gu.id ? null : gu.id)}
+                title="Ver QR familiar"
+                aria-label="Ver QR familiar"
+                className={`mr-3 flex h-8 w-8 items-center justify-center rounded-xl2 border transition
+                  ${qrOpen === gu.id
+                    ? "border-brand bg-brand-soft text-brand"
+                    : "border-line text-muted hover:border-brand hover:text-brand"
+                  }`}
+              >
+                <i className="ti ti-qrcode" style={{ fontSize: 17 }} aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Panel QR */}
+            {qrOpen === gu.id && (
+              <div className="border-t border-line bg-paper/60 px-5 py-4">
+                <div className="flex flex-wrap items-start gap-5">
+                  <div className="flex flex-col items-center gap-2">
+                    <QRCodeDisplay guardianId={gu.id} nombre={gu.nombre} size={160} />
+                    <p className="max-w-[160px] text-center text-xs text-muted">
+                      Presenta este QR en la entrada del encuentro
+                    </p>
+                  </div>
+                  <div className="flex flex-col justify-center gap-3 pt-1">
+                    <div>
+                      <p className="font-medium text-ink">
+                        QR de {gu.nombre} {gu.apellido}
+                      </p>
+                      <p className="mt-1 max-w-[220px] text-xs text-muted">
+                        Al escanear este código en la estación de check-in, los hijos de esta familia se cargan automáticamente.
+                      </p>
+                    </div>
+                    {gu.telefono && (
+                      <a
+                        href={buildWaLink(gu)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-ghost flex items-center gap-2 text-sm"
+                      >
+                        <i className="ti ti-brand-whatsapp" style={{ fontSize: 16 }} aria-hidden="true" />
+                        Enviar QR por WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sección expandida de niños */}
             {open === gu.id && (
               <div className="border-t border-line bg-paper/40 px-5 py-4 space-y-3">
                 {(children[gu.id] ?? []).map((c) => {
@@ -81,7 +155,8 @@ export default function FamiliasClient() {
                         <span className={`font-medium ${col.text}`}>{c.nombre} {c.apellido}</span>
                         <div className="ml-auto flex gap-1">
                           {(["info","medico","autorizados"] as const).map((t) => (
-                            <button key={t} onClick={() => { setChildTab((p) => ({ ...p, [c.id]: t })); if (t === "autorizados" && !pickups[c.id]) loadPickups(c.id); }}
+                            <button key={t}
+                              onClick={() => { setChildTab((p) => ({ ...p, [c.id]: t })); if (t === "autorizados" && !pickups[c.id]) loadPickups(c.id); }}
                               className={`rounded px-2 py-0.5 text-xs font-medium transition ${tab === t ? "bg-white shadow-sm" : "opacity-60 hover:opacity-100"}`}>
                               {t === "info" ? "Info" : t === "medico" ? "Médico" : "Autorizados"}
                             </button>
@@ -208,7 +283,7 @@ function AddChild({ guardianId, onAdded }: { guardianId: string; onAdded: () => 
     toast("Niño agregado exitosamente.", "success");
     onAdded();
   }
-  if (!show) return <button className="btn-ghost w-full" onClick={() => setShow(true)}>+ Agregar niño</button>;
+  if (!show) return <button className="btn-ghost w-full" onClick={() => setShow(true)}>Agregar niño</button>;
   return (
     <div className="rounded-xl2 border border-line bg-white p-4 grid grid-cols-2 gap-2">
       <input className="field" placeholder="Nombre" value={c.nombre} onChange={(e) => setC({ ...c, nombre: e.target.value })} />

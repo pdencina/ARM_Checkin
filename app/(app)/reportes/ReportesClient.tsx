@@ -174,7 +174,7 @@ export default function ReportesClient() {
           <div className="flex justify-between items-center">
             <p className="text-muted text-sm">{primeraVez.length} visitas de primera vez registradas</p>
             <button className="btn-ghost" onClick={() => exportCSV(primeraVez,
-              [{ key: "child.nombre", label: "Nombre" }, { key: "child.apellido", label: "Apellido" }, { key: "child.ministerio", label: "Ministerio" }, { key: "guardian.nombre", label: "Tutor" }, { key: "guardian.telefono", label: "Teléfono" }, { key: "service.nombre", label: "Servicio" }, { key: "checkin_at", label: "Fecha" }],
+              [{ key: "child.nombre", label: "Nombre" }, { key: "child.apellido", label: "Apellido" }, { key: "child.ministerio", label: "Ministerio" }, { key: "guardian.nombre", label: "Tutor" }, { key: "guardian.telefono", label: "Teléfono" }, { key: "service.nombre", label: "Encuentro" }, { key: "checkin_at", label: "Fecha" }],
               "primera-vez.csv")}>⬇ Exportar CSV</button>
           </div>
           {loading ? <p className="text-muted">Cargando…</p> : (

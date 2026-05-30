@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/useToast";
 import { ToastContainer } from "@/components/Toast";
@@ -20,6 +20,21 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   const [printIds, setPrintIds] = useState<string | null>(null);
   const [results, setResults] = useState<CheckinResult[] | null>(null);
   const step = guardian ? 2 : results ? 3 : 1;
+
+  /* Carga familia directamente por ID (desde QR escaneado o URL param ?g=) */
+  async function loadFamilyById(id: string) {
+    setResults(null); setGuardian(null); setChildren([]);
+    const { data } = await supabase.from("guardians").select("*").eq("id", id).single();
+    if (data) await elegirFamilia(data as Guardian);
+  }
+
+  /* Detectar URL param ?g=<guardianId> al cargar la página */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gId = params.get("g");
+    if (gId) loadFamilyById(gId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function buscar() {
     setResults(null); setGuardian(null); setChildren([]);
@@ -124,7 +139,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
       {!results && !guardian && (
         <>
           <div className="mb-4">
-            <label className="mb-1 block text-sm font-medium">Servicio</label>
+            <label className="mb-1 block text-sm font-medium">Encuentro</label>
             <select className="field" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
               {servicios.length === 0 && <option value="">— Sin servicios activos —</option>}
               {servicios.map((s) => <option key={s.id} value={s.id}>{s.nombre} · {s.fecha} {s.campus !== "Principal" ? `· ${s.campus}` : ""}</option>)}
