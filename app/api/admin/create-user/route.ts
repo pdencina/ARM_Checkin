@@ -3,7 +3,6 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
-  // Verificar que el caller esté autenticado y sea admin
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -12,33 +11,25 @@ export async function POST(req: NextRequest) {
   const { data: role } = await supabase.from("roles").select("es_admin").eq("slug", profile?.rol ?? "").single();
   if (!role?.es_admin) return NextResponse.json({ error: "Sin permiso de administrador" }, { status: 403 });
 
-  // Crear usuario con service role key (solo server-side)
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) {
-    return NextResponse.json(
-      { error: "Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno del servidor." },
-      { status: 500 }
-    );
-  }
+  if (!serviceKey) return NextResponse.json({ error: "Falta SUPABASE_SERVICE_ROLE_KEY." }, { status: 500 });
 
   const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
-
   const body = await req.json();
-  const { email, password, rol = "lider" } = body;
-  if (!email || !password) return NextResponse.json({ error: "Email y contraseña son requeridos." }, { status: 400 });
+  const { email, password, rol = "lider", campus_id } = body;
+  if (!email || !password) return NextResponse.json({ error: "Email y contraseña requeridos." }, { status: 400 });
 
   const { data: newUser, error } = await adminClient.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
+    email, password, email_confirm: true,
   });
-
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Si el rol pedido no es el default ('lider'), actualizamos el perfil
-  // (el trigger on_auth_user_created ya crea el perfil con rol='lider')
-  if (rol !== "lider") {
-    await adminClient.from("profiles").update({ rol }).eq("id", newUser.user.id);
+  // Actualizar perfil con rol y campus
+  const updates: any = {};
+  if (rol !== "lider") updates.rol = rol;
+  if (campus_id) updates.campus_id = campus_id;
+  if (Object.keys(updates).length > 0) {
+    await adminClient.from("profiles").update(updates).eq("id", newUser.user.id);
   }
 
   return NextResponse.json({ success: true, userId: newUser.user.id });

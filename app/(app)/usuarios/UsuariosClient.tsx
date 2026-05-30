@@ -18,15 +18,18 @@ export default function UsuariosClient() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [perms, setPerms] = useState<RolePermission[]>([]);
   const [meId, setMeId] = useState<string | null>(null);
-  const [nu, setNu] = useState({ email: "", password: "", rol: "lider" });
+  const [nu, setNu] = useState({ email: "", password: "", rol: "lider", campus_id: "" });
+  const [campuses, setCampuses] = useState<{id:string;nombre:string}[]>([]);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
 
   async function loadAll() {
+    const { data: camp } = await supabase.from("campuses").select("id, nombre").eq("activo", true).order("nombre");
+    setCampuses(camp ?? []);
     const { data: { user } } = await supabase.auth.getUser();
     setMeId(user?.id ?? null);
     const [{ data: p }, { data: r }, { data: rp }] = await Promise.all([
-      supabase.from("profiles").select("id, nombre, email, rol, activo").order("email"),
+      supabase.from("profiles").select("id, nombre, email, rol, activo, campus_id").order("email"),
       supabase.from("roles").select("slug, nombre, es_admin").order("slug"),
       supabase.from("role_permissions").select("rol, modulo, ver, gestionar"),
     ]);
@@ -39,13 +42,13 @@ export default function UsuariosClient() {
     setCreating(true);
     const res = await fetch("/api/admin/create-user", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: nu.email, password: nu.password, rol: nu.rol }),
+      body: JSON.stringify({ email: nu.email, password: nu.password, rol: nu.rol, campus_id: nu.campus_id || null }),
     });
     const data = await res.json();
     setCreating(false);
     if (!res.ok) { toast("Error: " + (data.error ?? "no se pudo crear"), "error"); return; }
     toast(`Usuario ${nu.email} creado exitosamente.`, "success");
-    setNu({ email: "", password: "", rol: "lider" });
+    setNu({ email: "", password: "", rol: "lider", campus_id: "" });
     setShowCreate(false);
     loadAll();
   }
@@ -103,8 +106,12 @@ export default function UsuariosClient() {
                   <input className="field flex-1" type="text" placeholder="Contraseña" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} />
                   <button className="btn-ghost shrink-0 text-xs" onClick={() => setNu({ ...nu, password: genPassword() })}>Generar</button>
                 </div>
-                <select className="field col-span-2" value={nu.rol} onChange={(e) => setNu({ ...nu, rol: e.target.value })}>
+                <select className="field" value={nu.rol} onChange={(e) => setNu({ ...nu, rol: e.target.value })}>
                   {roles.map((r) => <option key={r.slug} value={r.slug}>{r.nombre}</option>)}
+                </select>
+                <select className="field" value={nu.campus_id} onChange={(e) => setNu({ ...nu, campus_id: e.target.value })}>
+                  <option value="">— Sin campus (global) —</option>
+                  {campuses.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
               {nu.password && (
@@ -131,6 +138,10 @@ export default function UsuariosClient() {
                 </div>
                 <select className="field max-w-[10rem]" value={u.rol} disabled={esYo} onChange={(e) => cambiarRol(u.id, e.target.value)}>
                   {roles.map((r) => <option key={r.slug} value={r.slug}>{r.nombre}</option>)}
+                </select>
+                <select className="field" value={nu.campus_id} onChange={(e) => setNu({ ...nu, campus_id: e.target.value })}>
+                  <option value="">— Sin campus (global) —</option>
+                  {campuses.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
                 <button onClick={() => toggleActivo(u.id, !u.activo)} disabled={esYo}
                   className={`badge ${u.activo ? "bg-kids-soft text-kids-ink" : "bg-line text-muted"} ${esYo ? "opacity-50" : ""}`}>

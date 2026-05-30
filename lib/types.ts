@@ -1,5 +1,8 @@
 export type Ministerio = "kids" | "tweens" | "sensorial";
 
+export interface Campus {
+  id: string; nombre: string; pais: string; ciudad: string | null; activo: boolean; created_at: string;
+}
 export interface Guardian {
   id: string; nombre: string; apellido: string; telefono: string | null; email: string | null; created_at: string;
 }
@@ -12,7 +15,8 @@ export interface Child {
 }
 export interface Service {
   id: string; nombre: string; fecha: string; hora: string | null; activo: boolean;
-  campus: string; es_recurrente: boolean; dia_semana: number | null; hora_default: string | null;
+  campus: string; campus_id: string | null;
+  es_recurrente: boolean; dia_semana: number | null; hora_default: string | null;
   created_at: string;
 }
 export interface Checkin {
@@ -20,11 +24,12 @@ export interface Checkin {
   checkin_guardian_id: string; checkout_guardian_id: string | null;
   codigo_seguridad: string; estado: "checked_in" | "checked_out";
   checkin_at: string; checkout_at: string | null;
-  primera_vez: boolean; checkout_nombre: string | null;
+  primera_vez: boolean; checkout_nombre: string | null; campus_id: string | null;
 }
 export interface Volunteer {
   id: string; nombre: string; apellido: string; telefono: string | null;
-  email: string | null; areas: string[]; notas: string | null; activo: boolean; created_at: string;
+  email: string | null; areas: string[]; notas: string | null;
+  activo: boolean; campus_id: string | null; created_at: string;
 }
 export interface ServiceVolunteer {
   id: string; service_id: string; volunteer_id: string; ministerio: Ministerio;
@@ -51,9 +56,7 @@ export function edad(fecha: string | null): number | null {
   if (hoy.getMonth() - n.getMonth() < 0 || (hoy.getMonth() - n.getMonth() === 0 && hoy.getDate() < n.getDate())) e--;
   return e;
 }
-
 export function waLink(telefono: string | null, mensaje: string): string | null {
   if (!telefono) return null;
-  const num = telefono.replace(/[^0-9]/g, "");
-  return `https://wa.me/${num}?text=${encodeURIComponent(mensaje)}`;
+  return `https://wa.me/${telefono.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(mensaje)}`;
 }
