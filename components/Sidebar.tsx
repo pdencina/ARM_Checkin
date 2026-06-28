@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import type { NavItem } from "@/lib/permissions";
 
 const ADMIN_KEYS = ["servicios", "campuses", "usuarios", "panoramica"];
@@ -31,10 +30,9 @@ export default function Sidebar({
     localStorage.setItem(STORAGE_KEY, String(next));
   }
 
-  async function logout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+  function logout() {
+    // Demo mode: just reload
+    window.location.href = "/dashboard";
   }
 
   const ministerioNav = nav.filter((n) => !ADMIN_KEYS.includes(n.key));

@@ -28,7 +28,7 @@ export default function ReportesClient() {
 
   useEffect(() => {
     supabase.from("services").select("id, nombre, fecha, campus").order("fecha", { ascending: false }).limit(20)
-      .then(({ data }) => { setServicios(data ?? []); if (data?.length) setServiceId(data[0].id); });
+      .then(({ data }: any) => { setServicios(data ?? []); if (data?.length) setServiceId(data[0].id); });
   }, []);
 
   useEffect(() => { if (tab === "asistencia" && serviceId) loadAsistencia(); }, [serviceId, tab]);

@@ -49,7 +49,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
     setGuardian(g); setGuardians([]); setSelected(new Set());
     const { data } = await supabase.from("guardian_children").select("child:children(*)")
       .eq("guardian_id", g.id);
-    const hijos = (data ?? []).map((r: any) => r.child as Child).filter((c) => c && c.activo);
+    const hijos: Child[] = (data ?? []).map((r: any) => r.child as Child).filter((c: any) => c && c.activo);
     setChildren(hijos);
     setSelected(new Set(hijos.map((c) => c.id)));
   }
