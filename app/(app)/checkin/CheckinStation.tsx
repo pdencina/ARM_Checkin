@@ -19,7 +19,7 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   const [busy, setBusy] = useState(false);
   const [printIds, setPrintIds] = useState<string | null>(null);
   const [results, setResults] = useState<CheckinResult[] | null>(null);
-  const step = guardian ? 2 : results ? 3 : 1;
+  const step = results ? 3 : guardian ? 2 : 1;
 
   /* Carga familia directamente por ID (desde QR escaneado o URL param ?g=) */
   async function loadFamilyById(id: string) {
@@ -87,10 +87,12 @@ export default function CheckinStation({ servicios }: { servicios: Service[] }) 
   }
 
   function buildWhatsApp(): string | null {
-    if (!guardian || !results) return null;
+    if (!guardian || !results || results.length === 0) return null;
+    if (!guardian.telefono) return null;
     const lineas = results.map((r) => `• ${r.childNombre}${r.primeraVez ? " ⭐ (¡primera vez!)" : ""} — Código: *${r.codigo}* (${MIN_LABEL[r.ministerio]})`).join("\n");
     const msg = `¡Hola ${guardian.nombre}! ✅ Check-in realizado en ARM Kids & Tweens.\n\n${lineas}\n\nGuarda este mensaje para retirarlos. ¡Que disfrutes el servicio! 🙌`;
-    return waLink(guardian.telefono, msg);
+    const phone = guardian.telefono.replace(/[^0-9]/g, "");
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   }
 
   const waHref = buildWhatsApp();
