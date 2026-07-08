@@ -6,7 +6,10 @@ import { ToastContainer } from "@/components/Toast";
 import { MIN_COLOR, MIN_LABEL, edad, type Child, type Guardian, type Ministerio, type Service } from "@/lib/types";
 import dynamic from "next/dynamic";
 
-const QRScanner = dynamic(() => import("@/components/QRScanner"), { ssr: false });
+const QRScanner = dynamic(() => import("@/components/QRScanner"), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"><p className="text-white">Cargando cámara…</p></div>,
+});
 
 interface CheckinResult { id: string; codigo: string; childNombre: string; ministerio: Ministerio; primeraVez: boolean; }
 
