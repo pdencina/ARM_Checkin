@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/useToast";
 import { ToastContainer } from "@/components/Toast";
@@ -19,10 +19,14 @@ export default function CheckoutClient() {
   const { toasts, toast, dismiss } = useToast();
   const [searched, setSearched] = useState(false);
   const [checkoutNombre, setCheckoutNombre] = useState<Record<string, string>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input on mount and after each checkout
+  useEffect(() => { inputRef.current?.focus(); }, [rows]);
 
   async function buscar() {
     const code = codigo.trim().toUpperCase();
-     setSearched(true);
+    setSearched(true);
     if (!code) return;
     const { data: checkins } = await supabase
       .from("checkins")
@@ -59,7 +63,10 @@ export default function CheckoutClient() {
     });
     if (error) { toast("Error: " + error.message, "error"); return; }
     setRows((prev) => prev.filter((r) => r.id !== row.id));
+    setCodigo("");
+    setSearched(false);
     toast(`${row.child.nombre} ${row.child.apellido} retirado exitosamente.`, "success");
+    setTimeout(() => inputRef.current?.focus(), 200);
   }
 
   return (
@@ -69,8 +76,17 @@ export default function CheckoutClient() {
 
       <div className="mb-4 flex gap-2">
         <input className="field text-center font-mono text-2xl tracking-[0.3em]" placeholder="CÓDIGO"
+          ref={inputRef}
           maxLength={6} value={codigo}
-          onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+          autoFocus
+          onChange={(e) => {
+            const val = e.target.value.toUpperCase();
+            setCodigo(val);
+            // Auto-search when 4 chars entered (typical code length)
+            if (val.length === 4) {
+              setTimeout(() => { setCodigo(val); buscar(); }, 100);
+            }
+          }}
           onKeyDown={(e) => e.key === "Enter" && buscar()} />
         <button className="btn-brand" onClick={buscar}>Verificar</button>
       </div>

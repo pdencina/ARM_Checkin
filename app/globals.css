@@ -72,3 +72,28 @@
   .label:last-child { page-break-after: auto; }
 }
 @page { size: 62mm 50mm; margin: 0; }
+
+/* ─── PWA / Mobile optimizations ─── */
+@layer base {
+  /* Disable text selection on interactive elements (kiosk mode) */
+  button, [role="button"], .btn { -webkit-user-select: none; user-select: none; }
+  
+  /* Smooth scrolling */
+  html { scroll-behavior: smooth; }
+  
+  /* Remove tap highlight on mobile */
+  * { -webkit-tap-highlight-color: transparent; }
+  
+  /* Better touch targets */
+  @media (pointer: coarse) {
+    .btn, button { min-height: 44px; }
+    .field { min-height: 44px; font-size: 16px; /* prevents iOS zoom on focus */ }
+  }
+}
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card { animation: fadeIn 0.2s ease-out; }
