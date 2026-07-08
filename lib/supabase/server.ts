@@ -1,7 +1,26 @@
-/* Mock Supabase server client for demo (no real DB) */
-import { createClient as createBrowserClient } from "./client";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export function createClient() {
-  // Re-use the same mock logic as the browser client
-  return createBrowserClient();
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Llamado desde un Server Component: ignorable, el middleware refresca la sesión.
+          }
+        },
+      },
+    }
+  );
 }

@@ -30,9 +30,10 @@ export default function Sidebar({
     localStorage.setItem(STORAGE_KEY, String(next));
   }
 
-  function logout() {
-    // Demo mode: just reload
-    window.location.href = "/dashboard";
+  async function logout() {
+    const supabase = (await import("@/lib/supabase/client")).createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
   }
 
   const ministerioNav = nav.filter((n) => !ADMIN_KEYS.includes(n.key));

@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MOCK_GUARDIANS } from "@/lib/mock-data";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   const { credential } = await req.json();
   if (!credential?.trim()) return NextResponse.json({ guardianId: null });
 
-  const input = credential.trim().toLowerCase();
-  const phone = input.replace(/[^0-9]/g, "");
-
-  // Demo mode: search mock guardians
-  const found = MOCK_GUARDIANS.find((g) =>
-    g.email?.toLowerCase() === input ||
-    (phone.length >= 7 && g.telefono?.includes(phone))
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  return NextResponse.json({ guardianId: found?.id ?? null });
+  const input = credential.trim();
+  const phone = input.replace(/[^0-9]/g, "");
+
+  const { data } = await supabase
+    .from("guardians")
+    .select("id")
+    .or(`email.ilike.${input}${phone.length >= 7 ? `,telefono.ilike.%${phone}%` : ""}`)
+    .limit(1)
+    .single();
+
+  return NextResponse.json({ guardianId: data?.id ?? null });
 }
