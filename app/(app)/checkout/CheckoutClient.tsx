@@ -64,7 +64,7 @@ export default function CheckoutClient() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-1 text-2xl font-semibold">Retiro</h1>
+      <h1 className="mb-1 text-2xl font-semibold">Check-out</h1>
       <p className="mb-5 text-muted">Ingresa el código del comprobante y verifica quién retira.</p>
 
       <div className="mb-4 flex gap-2">
