@@ -35,7 +35,7 @@ export default function QRScanner({ onScan, onClose }: Props) {
               // Si no es URL, usar el texto directo como ID
             }
             onScan(guardianId);
-            scanner.stop().catch(() => {});
+            try { scanner.stop().catch(() => {}); } catch {}
           },
           () => {} // ignore scan failures (no QR in frame)
         )
@@ -47,7 +47,14 @@ export default function QRScanner({ onScan, onClose }: Props) {
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
+        try {
+          const state = scannerRef.current.getState();
+          if (state === 2 || state === 3) { // SCANNING or PAUSED
+            scannerRef.current.stop().catch(() => {});
+          }
+        } catch {
+          // Scanner not running, ignore
+        }
       }
     };
   }, [onScan]);
