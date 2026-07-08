@@ -11,22 +11,30 @@ export default function ServiciosClient() {
   const supabase = createClient();
   const { toasts, toast, dismiss } = useToast();
   const [list, setList] = useState<Service[]>([]);
-  const [s, setS] = useState({ nombre: "", fecha: "", hora: "", campus: "Principal", es_recurrente: false, dia_semana: 0 });
+  const [campusList, setCampusList] = useState<{ id: string; nombre: string }[]>([]);
+  const [s, setS] = useState({ nombre: "", fecha: "", hora: "", campus_id: "", es_recurrente: false, dia_semana: 0 });
 
   async function load() {
-    const { data } = await supabase.from("services").select("*").order("fecha", { ascending: false });
-    setList(data ?? []);
+    const [{ data: svcs }, { data: camps }] = await Promise.all([
+      supabase.from("services").select("*").order("fecha", { ascending: false }),
+      supabase.from("campuses").select("id, nombre").eq("activo", true).order("nombre"),
+    ]);
+    setList(svcs ?? []);
+    setCampusList(camps ?? []);
+    // Default to first campus if none selected
+    if (!s.campus_id && camps?.length) setS((prev) => ({ ...prev, campus_id: camps[0].id }));
   }
   useEffect(() => { load(); }, []);
 
   async function add() {
     if (!s.nombre || !s.fecha) return;
+    const campusNombre = campusList.find((c) => c.id === s.campus_id)?.nombre ?? "Principal";
     await supabase.from("services").insert({
       nombre: s.nombre, fecha: s.fecha, hora: s.hora || null,
-      campus: s.campus || "Principal",
+      campus: campusNombre, campus_id: s.campus_id || null,
       es_recurrente: s.es_recurrente, dia_semana: s.es_recurrente ? s.dia_semana : null,
     });
-    setS({ nombre: "", fecha: "", hora: "", campus: "Principal", es_recurrente: false, dia_semana: 0 });
+    setS({ ...s, nombre: "", fecha: "", hora: "" });
     toast("Encuentro creado exitosamente.", "success");
     load();
   }
@@ -53,7 +61,7 @@ export default function ServiciosClient() {
     load();
   }
 
-  const campuses = Array.from(new Set(list.map((x) => x.campus).filter(Boolean)));
+  const campusNombreById = (id: string | null) => campusList.find((c) => c.id === id)?.nombre ?? "—";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -65,8 +73,9 @@ export default function ServiciosClient() {
           <input className="field col-span-2" placeholder="Nombre (ej. Encuentro Domingo AM)" value={s.nombre} onChange={(e) => setS({ ...s, nombre: e.target.value })} />
           <input className="field" type="date" value={s.fecha} onChange={(e) => setS({ ...s, fecha: e.target.value })} />
           <input className="field" type="time" value={s.hora} onChange={(e) => setS({ ...s, hora: e.target.value })} />
-          <input className="field col-span-2" list="campuses-list" placeholder="Campus (ej. Principal, Sur, Norte)" value={s.campus} onChange={(e) => setS({ ...s, campus: e.target.value })} />
-          <datalist id="campuses-list">{campuses.map((c) => <option key={c} value={c} />)}</datalist>
+          <select className="field col-span-2" value={s.campus_id} onChange={(e) => setS({ ...s, campus_id: e.target.value })}>
+            {campusList.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm">
           <input type="checkbox" checked={s.es_recurrente} onChange={(e) => setS({ ...s, es_recurrente: e.target.checked })} className="h-4 w-4 accent-brand" />
