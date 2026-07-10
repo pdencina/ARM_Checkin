@@ -68,6 +68,7 @@ export async function getAccess(): Promise<Access | null> {
   const nav = MODULES.filter((m) => {
     if (m.key === "panoramica") return isSuperAdmin;
     if (m.key === "campuses")   return isSuperAdmin;
+    if (m.key === "llamar")     return can("checkout");
     return can(m.key);
   }).map((m) => ({ key: m.key, label: m.label, href: m.href, icon: m.icon }));
 
