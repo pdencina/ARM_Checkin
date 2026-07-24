@@ -162,8 +162,9 @@ export default function PlayClient() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 text-center px-4">
         <div className="rounded-[2rem] bg-white/90 backdrop-blur-xl p-10 shadow-2xl border border-white/60 max-w-sm w-full animate-slide-up">
-          <div className="mx-auto mb-4 h-20 w-20 rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 flex items-center justify-center animate-float-slow">
-            <span className="text-4xl">🎵</span>
+          <div className="mx-auto mb-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
+            <p className="text-lg leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
           </div>
           <h1 className="text-2xl font-black text-gray-800 mb-2">Pantalla Play</h1>
           <p className="text-sm text-gray-400 mb-6 leading-relaxed">

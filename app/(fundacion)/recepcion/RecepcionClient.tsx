@@ -137,8 +137,9 @@ export default function RecepcionClient() {
                        transition-all duration-300 ${sent ? "scale-[1.02] shadow-emerald-200/50" : ""}`}>
         {/* Header */}
         <div className="mb-7 text-center">
-          <div className="mx-auto mb-3 h-16 w-16 rounded-2xl bg-gradient-to-br from-pink-100 to-orange-100 flex items-center justify-center animate-float-slow">
-            <span className="text-3xl">🎈</span>
+          <div className="mx-auto mb-3 animate-float-slow">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
+            <p className="text-lg leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
           </div>
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">Recepción</h1>
           <p className="text-sm text-gray-400 mt-1">Avísale a las tías que hay movimiento 💜</p>

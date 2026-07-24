@@ -57,8 +57,9 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
         <FloatingShapes />
         <form onSubmit={submit} className="relative z-10 w-full max-w-sm rounded-[2rem] bg-white/95 backdrop-blur-xl p-8 shadow-2xl text-center">
           <div className="mb-6">
-            <div className="mx-auto mb-3 h-16 w-16 rounded-2xl bg-gradient-to-br from-yellow-200 to-orange-200 flex items-center justify-center shadow-inner">
-              <span className="text-3xl">🧸</span>
+            <div className="mx-auto mb-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-800">Fundación</p>
+              <p className="text-xl leading-tight"><span className="font-black text-gray-900">arm</span> <span className="font-medium text-gray-700">global</span></p>
             </div>
             <h1 className="text-2xl font-black text-gray-800">Play & Group</h1>
             <p className="text-sm text-gray-400 mt-1">Pon el PIN para entrar 🔑</p>
