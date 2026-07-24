@@ -19,6 +19,7 @@ export default function RecepcionClient() {
   const [feedback, setFeedback] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [connected, setConnected] = useState(false);
   const [sent, setSent] = useState(false);
+  const [popup, setPopup] = useState<{ nombre: string; tipo: "llegada" | "retiro" } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Cargar historial del día
@@ -51,6 +52,11 @@ export default function RecepcionClient() {
           setHistorial((prev) =>
             prev.map((n) => (n.id === updated.id ? { ...n, confirmado_at: updated.confirmado_at } : n))
           );
+          // Mostrar popup de confirmación
+          if (updated.confirmado_at) {
+            setPopup({ nombre: updated.nombre, tipo: updated.tipo });
+            setTimeout(() => setPopup(null), 4000);
+          }
         }
       )
       .subscribe((status) => {
@@ -105,6 +111,26 @@ export default function RecepcionClient() {
         <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
         <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Sin conexión"}</span>
       </div>
+
+      {/* ═══ POP-UP CONFIRMACIÓN DE LA TÍA ═══ */}
+      {popup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm px-4 animate-pop-in"
+             onClick={() => setPopup(null)}>
+          <div className="w-full max-w-sm rounded-[2rem] bg-white/95 backdrop-blur-xl p-8 shadow-2xl border border-emerald-100 text-center">
+            <span className="text-6xl block mb-3">
+              {popup.tipo === "llegada" ? "🙋‍♀️" : "🚶‍♀️"}
+            </span>
+            <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.15em] mb-2">
+              {popup.tipo === "llegada" ? "¡La tía va por él!" : "¡La tía lo lleva al hall!"}
+            </p>
+            <h2 className="text-4xl font-black text-gray-800 bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
+              {popup.nombre}
+            </h2>
+            <p className="text-sm text-gray-400 mt-3">Confirmado ✅</p>
+            <p className="text-[10px] text-gray-300 mt-4">Toca para cerrar</p>
+          </div>
+        </div>
+      )}
 
       {/* Card principal */}
       <div className={`w-full max-w-md rounded-[2rem] bg-white/90 backdrop-blur-xl p-8 shadow-2xl border border-white/60
