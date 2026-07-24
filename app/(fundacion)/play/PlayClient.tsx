@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 interface Notificacion {
   id: string;
   nombre: string;
+  tipo: "llegada" | "entrega";
+  confirmado_at: string | null;
   created_at: string;
 }
 
@@ -22,7 +24,6 @@ function launchConfetti(canvas: HTMLCanvasElement) {
     color: string; shape: string; vx: number; vy: number; rot: number; rotSpeed: number;
   }[] = [];
 
-  // Explotar desde el centro
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
 
@@ -30,8 +31,7 @@ function launchConfetti(canvas: HTMLCanvasElement) {
     const angle = Math.random() * Math.PI * 2;
     const speed = Math.random() * 12 + 4;
     particles.push({
-      x: cx,
-      y: cy,
+      x: cx, y: cy,
       w: Math.random() * 10 + 4,
       h: Math.random() * 8 + 3,
       color: colors[Math.floor(Math.random() * colors.length)],
@@ -47,39 +47,15 @@ function launchConfetti(canvas: HTMLCanvasElement) {
   const maxFrames = 160;
 
   function draw() {
-    if (frame >= maxFrames) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      return;
-    }
+    if (frame >= maxFrames) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.15; // gravity
-      p.vx *= 0.99; // drag
-      p.rot += p.rotSpeed;
-
-      const alpha = 1 - frame / maxFrames;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.color;
-
-      if (p.shape === "circle") {
-        ctx.beginPath();
-        ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (p.shape === "triangle") {
-        ctx.beginPath();
-        ctx.moveTo(0, -p.w / 2);
-        ctx.lineTo(-p.w / 2, p.w / 2);
-        ctx.lineTo(p.w / 2, p.w / 2);
-        ctx.closePath();
-        ctx.fill();
-      } else {
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      }
+      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.99; p.rot += p.rotSpeed;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = 1 - frame / maxFrames; ctx.fillStyle = p.color;
+      if (p.shape === "circle") { ctx.beginPath(); ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2); ctx.fill(); }
+      else if (p.shape === "triangle") { ctx.beginPath(); ctx.moveTo(0, -p.w / 2); ctx.lineTo(-p.w / 2, p.w / 2); ctx.lineTo(p.w / 2, p.w / 2); ctx.closePath(); ctx.fill(); }
+      else { ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); }
       ctx.restore();
     }
     frame++;
@@ -88,8 +64,7 @@ function launchConfetti(canvas: HTMLCanvasElement) {
   draw();
 }
 
-// ── Sonido campanita alegre ───────────────────────────────
-// Usa un AudioContext persistente que se desbloquea con interacción del usuario
+// ── Audio persistente ──────────────────────────────────────
 let sharedAudioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext {
@@ -106,8 +81,6 @@ function playChime() {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
-
-    // Acorde alegre (C-E-G-C alto)
     const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
@@ -120,9 +93,7 @@ function playChime() {
       osc.start(now + i * 0.1);
       osc.stop(now + i * 0.1 + 0.5);
     });
-  } catch {
-    // Silently ignore
-  }
+  } catch { /* ignore */ }
 }
 
 export default function PlayClient() {
@@ -130,16 +101,19 @@ export default function PlayClient() {
   const [queue, setQueue] = useState<Notificacion[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [entregaNombre, setEntregaNombre] = useState("");
+  const [entregaBusy, setEntregaBusy] = useState(false);
+  const [entregaFeedback, setEntregaFeedback] = useState<string | null>(null);
+  const [showEntrega, setShowEntrega] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const entregaInputRef = useRef<HTMLInputElement>(null);
 
   function enableAudio() {
-    // Desbloquear el AudioContext con la interacción del usuario
     const ctx = getAudioContext();
     ctx.resume().then(() => {
-      // Reproducir un sonido corto silencioso para confirmar desbloqueo
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      gain.gain.value = 0.01; // casi inaudible
+      gain.gain.value = 0.01;
       osc.connect(gain).connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.05);
@@ -147,6 +121,7 @@ export default function PlayClient() {
     setAudioEnabled(true);
   }
 
+  // Suscripción a Realtime (solo escucha llegadas)
   useEffect(() => {
     const channel = supabase
       .channel("notificaciones-play")
@@ -155,24 +130,24 @@ export default function PlayClient() {
         { event: "INSERT", schema: "public", table: "notificaciones" },
         (payload) => {
           const nuevo = payload.new as Notificacion;
-          setQueue((prev) => [...prev, nuevo]);
-          if (audioEnabled) playChime();
-          if (canvasRef.current) launchConfetti(canvasRef.current);
+          if (nuevo.tipo === "llegada") {
+            setQueue((prev) => [...prev, nuevo]);
+            if (audioEnabled) playChime();
+            if (canvasRef.current) launchConfetti(canvasRef.current);
+          }
         }
       )
       .subscribe((status) => {
         setConnected(status === "SUBSCRIBED");
       });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [audioEnabled]);
 
-  const dismiss = useCallback(async () => {
+  // Confirmar que va por el niño (llegada)
+  const confirmLlegada = useCallback(async () => {
     const current = queue[0];
     if (current) {
-      // Marcar como confirmado en Supabase
       await supabase
         .from("notificaciones")
         .update({ confirmado_at: new Date().toISOString() })
@@ -180,6 +155,27 @@ export default function PlayClient() {
     }
     setQueue((prev) => prev.slice(1));
   }, [queue]);
+
+  // Enviar entrega (tía lleva niño al hall)
+  async function enviarEntrega() {
+    const trimmed = entregaNombre.trim();
+    if (!trimmed) return;
+    setEntregaBusy(true);
+    try {
+      const { error } = await supabase
+        .from("notificaciones")
+        .insert({ nombre: trimmed, tipo: "entrega" });
+      if (error) throw error;
+      setEntregaNombre("");
+      setEntregaFeedback(`${trimmed} avisado a recepción ✓`);
+      setTimeout(() => setEntregaFeedback(null), 3000);
+      setTimeout(() => setShowEntrega(false), 1500);
+    } catch (e: any) {
+      setEntregaFeedback("Error: " + (e.message ?? "intenta nuevamente."));
+    } finally {
+      setEntregaBusy(false);
+    }
+  }
 
   const current = queue[0] ?? null;
 
@@ -209,6 +205,63 @@ export default function PlayClient() {
     );
   }
 
+  // ── Modal enviar entrega ────────────────────────────────
+  if (showEntrega) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-4">
+        <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
+
+        <div className="w-full max-w-sm rounded-[2rem] bg-white/95 backdrop-blur-xl p-8 shadow-2xl border border-white/60 animate-slide-up text-center">
+          <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center">
+            <span className="text-2xl">🚶‍♀️</span>
+          </div>
+          <h2 className="text-xl font-black text-gray-800 mb-1">Entregar al hall</h2>
+          <p className="text-sm text-gray-400 mb-5">Avisa a recepción que vas con un niño</p>
+
+          <input
+            ref={entregaInputRef}
+            type="text"
+            value={entregaNombre}
+            onChange={(e) => setEntregaNombre(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); enviarEntrega(); } }}
+            placeholder="Nombre del niño/a..."
+            autoFocus
+            className="w-full rounded-2xl border-2 border-orange-100 bg-orange-50/50 px-5 py-4 text-lg
+                       text-gray-800 placeholder:text-gray-300 font-medium mb-4
+                       focus:outline-none focus:ring-4 focus:ring-orange-200/60 focus:border-orange-300 focus:bg-white
+                       transition-all"
+            disabled={entregaBusy}
+          />
+
+          <button
+            onClick={enviarEntrega}
+            disabled={entregaBusy || !entregaNombre.trim()}
+            className="w-full rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400
+                       px-5 py-4 text-lg font-bold text-white shadow-lg shadow-orange-200/50
+                       transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.97]
+                       disabled:opacity-40 disabled:cursor-not-allowed
+                       flex items-center justify-center gap-2 mb-3"
+          >
+            {entregaBusy ? <span className="animate-spin">✨</span> : <><span>📣</span> Avisar a Recepción</>}
+          </button>
+
+          {entregaFeedback && (
+            <div className="rounded-2xl bg-emerald-50 text-emerald-600 text-sm font-bold px-4 py-3 border border-emerald-100 animate-pop-in mb-3">
+              {entregaFeedback}
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowEntrega(false)}
+            className="text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            ← Volver a espera
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Esperando ───────────────────────────────────────────
   if (!current) {
     return (
@@ -230,11 +283,21 @@ export default function PlayClient() {
             Cuando recepción avise, aparecerá aquí con sonido y confetti 🎉
           </p>
         </div>
+
+        {/* Botón de entregar niño */}
+        <button
+          onClick={() => { setShowEntrega(true); setTimeout(() => entregaInputRef.current?.focus(), 100); }}
+          className="rounded-2xl bg-white/70 backdrop-blur-lg px-6 py-3 shadow-md border border-white/50
+                     text-sm font-bold text-gray-600 transition-all hover:bg-white hover:shadow-lg hover:scale-[1.02]
+                     flex items-center gap-2"
+        >
+          <span>🚶‍♀️</span> Entregar niño al hall
+        </button>
       </div>
     );
   }
 
-  // ── Notificación activa ─────────────────────────────────
+  // ── Notificación activa (llegada) ───────────────────────
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 text-center px-4">
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
@@ -269,7 +332,7 @@ export default function PlayClient() {
         </p>
 
         <button
-          onClick={dismiss}
+          onClick={confirmLlegada}
           className="mt-8 w-full rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500
                      px-8 py-5 text-xl font-black text-white shadow-lg shadow-purple-300/40
                      transition-all hover:shadow-xl hover:shadow-purple-300/60 hover:scale-[1.02] active:scale-[0.95]
