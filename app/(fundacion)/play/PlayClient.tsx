@@ -9,34 +9,42 @@ interface Notificacion {
   created_at: string;
 }
 
-// ── Confetti canvas ────────────────────────────────────────
+// ── Confetti explosivo ─────────────────────────────────────
 function launchConfetti(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext("2d")!;
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const colors = ["#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#60a5fa", "#fb923c"];
+  const colors = ["#a78bfa", "#f472b6", "#34d399", "#fbbf24", "#60a5fa", "#fb923c", "#f87171"];
+  const shapes = ["rect", "circle", "triangle"];
   const particles: {
     x: number; y: number; w: number; h: number;
-    color: string; vx: number; vy: number; rot: number; rotSpeed: number;
+    color: string; shape: string; vx: number; vy: number; rot: number; rotSpeed: number;
   }[] = [];
 
-  for (let i = 0; i < 180; i++) {
+  // Explotar desde el centro
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+
+  for (let i = 0; i < 200; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 12 + 4;
     particles.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height - canvas.height,
+      x: cx,
+      y: cy,
       w: Math.random() * 10 + 4,
-      h: Math.random() * 6 + 3,
+      h: Math.random() * 8 + 3,
       color: colors[Math.floor(Math.random() * colors.length)],
-      vx: (Math.random() - 0.5) * 5,
-      vy: Math.random() * 5 + 3,
+      shape: shapes[Math.floor(Math.random() * shapes.length)],
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 3,
       rot: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.3,
+      rotSpeed: (Math.random() - 0.5) * 0.4,
     });
   }
 
   let frame = 0;
-  const maxFrames = 140;
+  const maxFrames = 160;
 
   function draw() {
     if (frame >= maxFrames) {
@@ -47,14 +55,31 @@ function launchConfetti(canvas: HTMLCanvasElement) {
     for (const p of particles) {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.12;
+      p.vy += 0.15; // gravity
+      p.vx *= 0.99; // drag
       p.rot += p.rotSpeed;
+
+      const alpha = 1 - frame / maxFrames;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = p.color;
-      ctx.globalAlpha = 1 - frame / maxFrames;
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+
+      if (p.shape === "circle") {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.shape === "triangle") {
+        ctx.beginPath();
+        ctx.moveTo(0, -p.w / 2);
+        ctx.lineTo(-p.w / 2, p.w / 2);
+        ctx.lineTo(p.w / 2, p.w / 2);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
       ctx.restore();
     }
     frame++;
@@ -63,43 +88,27 @@ function launchConfetti(canvas: HTMLCanvasElement) {
   draw();
 }
 
-// ── Sonido campanita (Web Audio API) ──────────────────────
+// ── Sonido campanita alegre ───────────────────────────────
 function playChime() {
   try {
     const ctx = new AudioContext();
     const now = ctx.currentTime;
 
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.value = 830;
-    gain1.gain.setValueAtTime(0.4, now);
-    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-    osc1.connect(gain1).connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.4);
+    // Acorde alegre (C-E-G-C alto)
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, now + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.5);
+    });
 
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.value = 1100;
-    gain2.gain.setValueAtTime(0.4, now + 0.15);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-    osc2.connect(gain2).connect(ctx.destination);
-    osc2.start(now + 0.15);
-    osc2.stop(now + 0.6);
-
-    const osc3 = ctx.createOscillator();
-    const gain3 = ctx.createGain();
-    osc3.type = "sine";
-    osc3.frequency.value = 1320;
-    gain3.gain.setValueAtTime(0.3, now + 0.3);
-    gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
-    osc3.connect(gain3).connect(ctx.destination);
-    osc3.start(now + 0.3);
-    osc3.stop(now + 0.8);
-
-    setTimeout(() => ctx.close(), 1000);
+    setTimeout(() => ctx.close(), 1500);
   } catch {
     // Silently ignore
   }
@@ -118,7 +127,6 @@ export default function PlayClient() {
     setAudioEnabled(true);
   }
 
-  // Suscripción a Realtime
   useEffect(() => {
     const channel = supabase
       .channel("notificaciones-play")
@@ -151,20 +159,22 @@ export default function PlayClient() {
   if (!audioEnabled) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 text-center px-4">
-        <div className="rounded-3xl bg-white/90 backdrop-blur p-10 shadow-2xl max-w-sm w-full">
-          <span className="text-6xl block mb-4">🔔</span>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Pantalla Play</h1>
-          <p className="text-sm text-gray-400 mb-6">
-            Activa el sonido para escuchar cuando llegue un niño a recepción.
+        <div className="rounded-[2rem] bg-white/90 backdrop-blur-xl p-10 shadow-2xl border border-white/60 max-w-sm w-full animate-slide-up">
+          <div className="mx-auto mb-4 h-20 w-20 rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 flex items-center justify-center animate-float-slow">
+            <span className="text-4xl">🎵</span>
+          </div>
+          <h1 className="text-2xl font-black text-gray-800 mb-2">Pantalla Play</h1>
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+            Activa el sonido para escuchar cuando llegue un niño 🧸
           </p>
           <button
             onClick={enableAudio}
-            className="w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400
-                       px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-200/50
-                       transition hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+            className="w-full rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500
+                       px-6 py-4 text-lg font-bold text-white shadow-lg shadow-purple-300/40
+                       transition-all hover:shadow-xl hover:shadow-purple-300/60 hover:scale-[1.02] active:scale-[0.97]
                        flex items-center justify-center gap-2"
           >
-            <span>🔊</span> Activar sonido
+            <span className="text-xl">🔊</span> Activar sonido
           </button>
         </div>
       </div>
@@ -175,17 +185,21 @@ export default function PlayClient() {
   if (!current) {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 text-center px-4">
+        <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
+
         {/* Indicador de conexión */}
-        <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-3 py-1.5 shadow-sm">
-          <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-red-400"}`} />
-          <span className="text-xs font-medium text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
+        <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
+          <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+          <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
         </div>
 
-        <div className="rounded-3xl bg-white/80 backdrop-blur p-12 shadow-xl">
-          <span className="text-7xl block mb-4 animate-pulse">🧸</span>
-          <h1 className="text-2xl font-bold text-gray-700">Esperando niños…</h1>
-          <p className="text-sm text-gray-400 mt-2">
-            Cuando recepción avise, aparecerá aquí con sonido 🎵
+        <div className="rounded-[2rem] bg-white/80 backdrop-blur-xl p-14 shadow-xl border border-white/50">
+          <div className="animate-float-med mx-auto mb-5">
+            <span className="text-8xl block">🧸</span>
+          </div>
+          <h1 className="text-2xl font-black text-gray-700">Esperando niños…</h1>
+          <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+            Cuando recepción avise, aparecerá aquí con sonido y confetti 🎉
           </p>
         </div>
       </div>
@@ -198,42 +212,42 @@ export default function PlayClient() {
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
 
       {/* Indicador conexión */}
-      <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-3 py-1.5 shadow-sm z-10">
-        <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-red-400"}`} />
-        <span className="text-xs font-medium text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
+      <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50 z-10">
+        <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+        <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
       </div>
 
       {/* Badge cola */}
       {queue.length > 1 && (
-        <div className="fixed top-4 left-4 rounded-full bg-white/90 backdrop-blur px-4 py-2 shadow-sm z-10">
-          <span className="text-xs font-bold text-gray-700">+{queue.length - 1} en espera</span>
+        <div className="fixed top-4 left-4 rounded-full bg-white/90 backdrop-blur-lg px-4 py-2 shadow-lg border border-white/50 z-10">
+          <span className="text-xs font-bold text-purple-600">🔔 +{queue.length - 1} en espera</span>
         </div>
       )}
 
       {/* Card de notificación */}
-      <div className="rounded-3xl bg-white/95 backdrop-blur p-10 shadow-2xl max-w-lg w-full animate-in">
-        <div className="mb-4">
-          <span className="text-6xl block animate-bounce">🎉</span>
+      <div className="rounded-[2rem] bg-white/95 backdrop-blur-xl p-10 shadow-2xl border border-white/60 max-w-lg w-full animate-pop-in animate-pulse-glow">
+        <div className="mb-5">
+          <span className="text-7xl block animate-bounce">🎉</span>
         </div>
 
-        <p className="text-sm font-bold text-emerald-500 uppercase tracking-widest mb-3">
+        <p className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] mb-3">
           ¡Llegó a recepción!
         </p>
-        <h1 className="text-5xl font-black text-gray-800 md:text-6xl leading-tight">
+        <h1 className="text-5xl font-black text-gray-800 md:text-6xl leading-tight bg-gradient-to-r from-violet-600 to-pink-500 bg-clip-text text-transparent">
           {current.nombre}
         </h1>
-        <p className="text-sm text-gray-400 mt-3 font-medium">
-          {new Date(current.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
+        <p className="text-sm text-gray-400 mt-3 font-semibold">
+          🕐 {new Date(current.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
         </p>
 
         <button
           onClick={dismiss}
-          className="mt-8 w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400
-                     px-8 py-5 text-lg font-bold text-white shadow-lg shadow-emerald-200/50
-                     transition hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
-                     flex items-center justify-center gap-2"
+          className="mt-8 w-full rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500
+                     px-8 py-5 text-xl font-black text-white shadow-lg shadow-purple-300/40
+                     transition-all hover:shadow-xl hover:shadow-purple-300/60 hover:scale-[1.02] active:scale-[0.95]
+                     flex items-center justify-center gap-3"
         >
-          <span>✅</span> Entendido, voy!
+          <span className="text-2xl">🙋‍♀️</span> ¡Voy por él!
         </button>
       </div>
     </div>
