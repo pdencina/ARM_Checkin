@@ -15,28 +15,28 @@ function launchConfetti(canvas: HTMLCanvasElement) {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const colors = ["#f59e0b", "#fb923c", "#10b981", "#ec4899", "#6366f1", "#facc15"];
+  const colors = ["#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#60a5fa", "#fb923c"];
   const particles: {
     x: number; y: number; w: number; h: number;
     color: string; vx: number; vy: number; rot: number; rotSpeed: number;
   }[] = [];
 
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 180; i++) {
     particles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height - canvas.height,
-      w: Math.random() * 8 + 4,
+      w: Math.random() * 10 + 4,
       h: Math.random() * 6 + 3,
       color: colors[Math.floor(Math.random() * colors.length)],
-      vx: (Math.random() - 0.5) * 4,
-      vy: Math.random() * 4 + 2,
+      vx: (Math.random() - 0.5) * 5,
+      vy: Math.random() * 5 + 3,
       rot: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.2,
+      rotSpeed: (Math.random() - 0.5) * 0.3,
     });
   }
 
   let frame = 0;
-  const maxFrames = 120;
+  const maxFrames = 140;
 
   function draw() {
     if (frame >= maxFrames) {
@@ -47,7 +47,7 @@ function launchConfetti(canvas: HTMLCanvasElement) {
     for (const p of particles) {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.1;
+      p.vy += 0.12;
       p.rot += p.rotSpeed;
       ctx.save();
       ctx.translate(p.x, p.y);
@@ -150,24 +150,23 @@ export default function PlayClient() {
   // ── Overlay activar sonido ──────────────────────────────
   if (!audioEnabled) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 text-center px-4">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-amber-100">
-          <span style={{ fontSize: 44 }}>🧸</span>
-        </div>
-        <div>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-8 text-center px-4">
+        <div className="rounded-3xl bg-white/90 backdrop-blur p-10 shadow-2xl max-w-sm w-full">
+          <span className="text-6xl block mb-4">🔔</span>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Pantalla Play</h1>
-          <p className="text-sm text-gray-500 max-w-xs">
-            Activa el sonido para recibir las notificaciones cuando llegue un niño.
+          <p className="text-sm text-gray-400 mb-6">
+            Activa el sonido para escuchar cuando llegue un niño a recepción.
           </p>
+          <button
+            onClick={enableAudio}
+            className="w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400
+                       px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-200/50
+                       transition hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                       flex items-center justify-center gap-2"
+          >
+            <span>🔊</span> Activar sonido
+          </button>
         </div>
-        <button
-          onClick={enableAudio}
-          className="rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white
-                     transition hover:bg-amber-600 flex items-center gap-2"
-        >
-          <i className="ti ti-volume" style={{ fontSize: 22 }} aria-hidden="true" />
-          Activar sonido
-        </button>
       </div>
     );
   }
@@ -177,18 +176,16 @@ export default function PlayClient() {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 text-center px-4">
         {/* Indicador de conexión */}
-        <div className="absolute top-5 right-5 flex items-center gap-2">
-          <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-green-500" : "bg-red-400"}`} />
-          <span className="text-xs text-gray-400">{connected ? "Conectado" : "Reconectando…"}</span>
+        <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-3 py-1.5 shadow-sm">
+          <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-red-400"}`} />
+          <span className="text-xs font-medium text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
         </div>
 
-        <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-white/80 shadow-sm">
-          <span style={{ fontSize: 52 }}>🧸</span>
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-700">Esperando niños…</h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Cuando recepción avise, aparecerá aquí con sonido
+        <div className="rounded-3xl bg-white/80 backdrop-blur p-12 shadow-xl">
+          <span className="text-7xl block mb-4 animate-pulse">🧸</span>
+          <h1 className="text-2xl font-bold text-gray-700">Esperando niños…</h1>
+          <p className="text-sm text-gray-400 mt-2">
+            Cuando recepción avise, aparecerá aquí con sonido 🎵
           </p>
         </div>
       </div>
@@ -201,45 +198,44 @@ export default function PlayClient() {
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
 
       {/* Indicador conexión */}
-      <div className="absolute top-5 right-5 flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-green-500" : "bg-red-400"}`} />
-        <span className="text-xs text-gray-400">{connected ? "Conectado" : "Reconectando…"}</span>
+      <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-3 py-1.5 shadow-sm z-10">
+        <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-red-400"}`} />
+        <span className="text-xs font-medium text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
       </div>
 
       {/* Badge cola */}
       {queue.length > 1 && (
-        <div className="absolute top-5 left-5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white">
-          +{queue.length - 1} en espera
+        <div className="fixed top-4 left-4 rounded-full bg-white/90 backdrop-blur px-4 py-2 shadow-sm z-10">
+          <span className="text-xs font-bold text-gray-700">+{queue.length - 1} en espera</span>
         </div>
       )}
 
-      {/* Contenido */}
-      <div className="animate-bounce">
-        <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-amber-100 mx-auto">
-          <span style={{ fontSize: 64 }}>🧸</span>
+      {/* Card de notificación */}
+      <div className="rounded-3xl bg-white/95 backdrop-blur p-10 shadow-2xl max-w-lg w-full animate-in">
+        <div className="mb-4">
+          <span className="text-6xl block animate-bounce">🎉</span>
         </div>
-      </div>
 
-      <div>
-        <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">
-          Llegó a recepción
+        <p className="text-sm font-bold text-emerald-500 uppercase tracking-widest mb-3">
+          ¡Llegó a recepción!
         </p>
-        <h1 className="text-5xl font-bold text-gray-800 md:text-6xl">
+        <h1 className="text-5xl font-black text-gray-800 md:text-6xl leading-tight">
           {current.nombre}
         </h1>
-        <p className="text-sm text-gray-400 mt-3">
+        <p className="text-sm text-gray-400 mt-3 font-medium">
           {new Date(current.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
         </p>
-      </div>
 
-      <button
-        onClick={dismiss}
-        className="mt-4 rounded-xl bg-amber-500 px-10 py-4 text-lg font-semibold text-white
-                   transition hover:bg-amber-600 flex items-center gap-2"
-      >
-        <i className="ti ti-check" style={{ fontSize: 24 }} aria-hidden="true" />
-        Entendido, voy!
-      </button>
+        <button
+          onClick={dismiss}
+          className="mt-8 w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400
+                     px-8 py-5 text-lg font-bold text-white shadow-lg shadow-emerald-200/50
+                     transition hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                     flex items-center justify-center gap-2"
+        >
+          <span>✅</span> Entendido, voy!
+        </button>
+      </div>
     </div>
   );
 }

@@ -15,9 +15,10 @@ export default function RecepcionClient() {
   const [historial, setHistorial] = useState<Notificacion[]>([]);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [connected, setConnected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Cargar historial del día
+  // Cargar historial del día + verificar conexión
   useEffect(() => {
     async function load() {
       const hoy = new Date();
@@ -27,7 +28,10 @@ export default function RecepcionClient() {
         .select("id, nombre, created_at")
         .gte("created_at", hoy.toISOString())
         .order("created_at", { ascending: false });
-      if (data) setHistorial(data);
+      if (data) {
+        setHistorial(data);
+        setConnected(true);
+      }
     }
     load();
   }, []);
@@ -46,7 +50,7 @@ export default function RecepcionClient() {
       if (error) throw error;
       setHistorial((prev) => [data, ...prev]);
       setNombre("");
-      setFeedback({ msg: `✓ Avisado: ${trimmed}`, type: "ok" });
+      setFeedback({ msg: `${trimmed} avisado ✓`, type: "ok" });
       inputRef.current?.focus();
       setTimeout(() => setFeedback(null), 3000);
     } catch (e: any) {
@@ -68,92 +72,106 @@ export default function RecepcionClient() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100">
-          <span style={{ fontSize: 28 }}>🧸</span>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-800">Recepción</h1>
-        <p className="text-sm text-gray-500 mt-1">Avisa a Play que llegó un niño</p>
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
+      {/* Indicador de conexión */}
+      <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-3 py-1.5 shadow-sm">
+        <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-red-400"}`} />
+        <span className="text-xs font-medium text-gray-600">{connected ? "Conectado" : "Sin conexión"}</span>
       </div>
 
-      {/* Input */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm border border-amber-100 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Nombre del niño
-        </label>
-        <div className="flex gap-2">
+      {/* Card principal */}
+      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+        {/* Header */}
+        <div className="mb-6 text-center">
+          <span className="text-4xl block mb-2">🏫</span>
+          <h1 className="text-2xl font-bold text-gray-800">Recepción</h1>
+          <p className="text-sm text-gray-400 mt-1">Notifica a las tías de Play que llegó un niño</p>
+        </div>
+
+        {/* Input */}
+        <div className="mb-4">
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+            Nombre del niño/a
+          </label>
           <input
             ref={inputRef}
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ej: Mateo López"
+            placeholder="Ej: Sofía, Mateo..."
             autoFocus
-            className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300
-                       disabled:opacity-50"
+            className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50 px-5 py-4 text-base
+                       text-gray-800 placeholder:text-gray-300
+                       focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-300
+                       transition disabled:opacity-50"
             disabled={busy}
           />
-          <button
-            onClick={enviar}
-            disabled={busy || !nombre.trim()}
-            className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white
-                       transition hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed
-                       flex items-center gap-2 whitespace-nowrap"
-          >
-            {busy ? (
-              <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 18 }} />
-            ) : (
-              <>
-                <i className="ti ti-bell-ringing" style={{ fontSize: 16 }} aria-hidden="true" />
-                Avisar
-              </>
-            )}
-          </button>
         </div>
-        <p className="text-xs text-gray-400 mt-2">Presiona Enter para enviar rápido</p>
 
-        {/* Feedback inline */}
+        {/* Botón Avisar */}
+        <button
+          onClick={enviar}
+          disabled={busy || !nombre.trim()}
+          className="w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400
+                     px-5 py-4 text-base font-bold text-white shadow-lg shadow-emerald-200/50
+                     transition hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                     disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
+                     flex items-center justify-center gap-2"
+        >
+          {busy ? (
+            <span className="animate-spin text-lg">⏳</span>
+          ) : (
+            <>
+              <span>📣</span> Avisar a Play
+            </>
+          )}
+        </button>
+
+        {/* Feedback */}
         {feedback && (
-          <div className={`mt-3 rounded-lg px-3 py-2 text-sm font-medium
-            ${feedback.type === "ok" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+          <div className={`mt-4 rounded-2xl px-4 py-3 text-sm font-semibold text-center
+            ${feedback.type === "ok"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-red-50 text-red-600"}`}
+          >
             {feedback.msg}
           </div>
         )}
+
+        {/* Link a Play */}
+        <div className="mt-4 text-center">
+          <a href="/play" className="text-xs text-gray-400 hover:text-gray-600 transition">
+            Abrir pantalla de Play →
+          </a>
+        </div>
       </div>
 
       {/* Historial del día */}
-      <div>
-        <h2 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-1.5">
-          <i className="ti ti-history" style={{ fontSize: 15 }} aria-hidden="true" />
-          Enviados hoy ({historial.length})
-        </h2>
-
-        {historial.length === 0 ? (
-          <div className="rounded-2xl bg-white/60 border border-amber-100 px-5 py-8 text-center text-sm text-gray-400">
-            <i className="ti ti-inbox text-2xl mb-2 block opacity-40" aria-hidden="true" />
-            No se han enviado avisos hoy
-          </div>
-        ) : (
+      {historial.length > 0 && (
+        <div className="w-full max-w-md mt-6">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-white/70 mb-3 px-2">
+            Hoy ({historial.length})
+          </h2>
           <div className="space-y-2">
-            {historial.map((n) => (
+            {historial.slice(0, 8).map((n) => (
               <div
                 key={n.id}
-                className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 border border-amber-100 shadow-xs"
+                className="flex items-center gap-3 rounded-2xl bg-white/90 backdrop-blur px-4 py-3 shadow-sm"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
-                  <i className="ti ti-user text-amber-500" style={{ fontSize: 14 }} aria-hidden="true" />
-                </div>
-                <span className="flex-1 text-sm font-medium text-gray-800">{n.nombre}</span>
-                <span className="text-xs text-gray-400">{formatHora(n.created_at)}</span>
+                <span className="text-lg">👶</span>
+                <span className="flex-1 text-sm font-semibold text-gray-700">{n.nombre}</span>
+                <span className="text-xs text-gray-400 font-medium">{formatHora(n.created_at)}</span>
               </div>
             ))}
+            {historial.length > 8 && (
+              <p className="text-center text-xs text-white/50 pt-1">
+                +{historial.length - 8} más
+              </p>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
