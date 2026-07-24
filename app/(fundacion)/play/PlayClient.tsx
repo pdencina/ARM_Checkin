@@ -167,7 +167,7 @@ export default function PlayClient() {
           </div>
           <h1 className="text-2xl font-black text-gray-800 mb-2">Pantalla Play</h1>
           <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-            Activa el sonido para escuchar las notificaciones de recepción 🧸
+            Toca el botón para que suene cuando te avisen desde recepción 🧸
           </p>
           <button
             onClick={enableAudio}
@@ -198,9 +198,9 @@ export default function PlayClient() {
           <div className="animate-float-med mx-auto mb-5">
             <span className="text-8xl block">🧸</span>
           </div>
-          <h1 className="text-2xl font-black text-gray-700">Esperando avisos…</h1>
+          <h1 className="text-2xl font-black text-gray-700">Todo tranqui por acá…</h1>
           <p className="text-sm text-gray-400 mt-2 leading-relaxed">
-            Cuando recepción avise, aparecerá aquí con sonido 🎉
+            Cuando avisen de recepción va a sonar acá 🎉
           </p>
         </div>
       </div>
@@ -240,7 +240,7 @@ export default function PlayClient() {
 
         <p className={`text-xs font-black uppercase tracking-[0.2em] mb-3
                        ${isLlegada ? "text-purple-400" : "text-orange-400"}`}>
-          {isLlegada ? "¡Llegó un niño!" : "¡Vienen a buscarlo!"}
+          {isLlegada ? "¡Dejaron un niño en recepción!" : "¡Vienen a buscar a un niño!"}
         </p>
 
         <h1 className={`text-5xl font-black md:text-6xl leading-tight bg-clip-text text-transparent
@@ -252,8 +252,8 @@ export default function PlayClient() {
 
         <p className="text-sm text-gray-400 mt-3 font-medium">
           {isLlegada
-            ? "Papá lo dejó en recepción, ve a buscarlo 🚶‍♀️"
-            : "Papá vino a buscarlo, llévalo al hall 🏠"}
+            ? "Anda a buscarlo a la entrada 🚶‍♀️"
+            : "Tráelo al hall que lo están esperando 🏠"}
         </p>
 
         <p className="text-xs text-gray-300 mt-2">
@@ -270,9 +270,9 @@ export default function PlayClient() {
                        : "bg-gradient-to-r from-orange-400 to-amber-400 shadow-orange-200/40"}`}
         >
           {isLlegada ? (
-            <><span className="text-2xl">🙋‍♀️</span> ¡Voy por él!</>
+            <><span className="text-2xl">🙋‍♀️</span> Ya voy!</>
           ) : (
-            <><span className="text-2xl">🚶‍♀️</span> ¡Lo llevo al hall!</>
+            <><span className="text-2xl">🚶‍♀️</span> Ya lo llevo!</>
           )}
         </button>
       </div>

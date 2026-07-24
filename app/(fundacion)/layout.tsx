@@ -61,7 +61,7 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
               <span className="text-3xl">🧸</span>
             </div>
             <h1 className="text-2xl font-black text-gray-800">Play & Group</h1>
-            <p className="text-sm text-gray-400 mt-1">Ingresa el PIN para continuar</p>
+            <p className="text-sm text-gray-400 mt-1">Pon el PIN para entrar 🔑</p>
           </div>
 
           <input
@@ -78,7 +78,7 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
           />
 
           {error && (
-            <p className="mt-2 text-sm text-red-500 font-medium">PIN incorrecto 😅</p>
+            <p className="mt-2 text-sm text-red-500 font-medium">Ese no es 😅 intenta de nuevo</p>
           )}
 
           <button

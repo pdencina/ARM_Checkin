@@ -74,8 +74,8 @@ export default function RecepcionClient() {
       if (error) throw error;
       setHistorial((prev) => [data as Notificacion, ...prev]);
       setNombre("");
-      const label = tipo === "llegada" ? "Llegada" : "Retiro";
-      setFeedback({ msg: `${label}: ${trimmed} avisado ✓`, type: "ok" });
+      const label = tipo === "llegada" ? "Dejaron a" : "Buscan a";
+      setFeedback({ msg: `${label} ${trimmed} — avisado ✓`, type: "ok" });
       setSent(true);
       setTimeout(() => setSent(false), 600);
       inputRef.current?.focus();
@@ -115,13 +115,13 @@ export default function RecepcionClient() {
             <span className="text-3xl">🎈</span>
           </div>
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">Recepción</h1>
-          <p className="text-sm text-gray-400 mt-1">Avisa a las tías de Play</p>
+          <p className="text-sm text-gray-400 mt-1">Avísale a las tías que hay movimiento 💜</p>
         </div>
 
         {/* Input */}
         <div className="mb-5">
           <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">
-            Nombre del niño/a
+            ¿Cómo se llama?
           </label>
           <input
             ref={inputRef}
@@ -152,8 +152,8 @@ export default function RecepcionClient() {
                        flex flex-col items-center gap-1"
           >
             <span className="text-xl">🧸</span>
-            <span>Llegó</span>
-            <span className="text-[10px] font-normal opacity-80">Vienen a dejarlo</span>
+            <span>Lo vienen a dejar</span>
+            <span className="text-[10px] font-normal opacity-80">Que vengan a buscarlo</span>
           </button>
 
           <button
@@ -167,8 +167,8 @@ export default function RecepcionClient() {
                        flex flex-col items-center gap-1"
           >
             <span className="text-xl">👋</span>
-            <span>Retiro</span>
-            <span className="text-[10px] font-normal opacity-80">Vienen a buscarlo</span>
+            <span>Lo vienen a buscar</span>
+            <span className="text-[10px] font-normal opacity-80">Que lo traigan al hall</span>
           </button>
         </div>
 
@@ -228,10 +228,10 @@ export default function RecepcionClient() {
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
                   <span className="text-[10px] font-semibold text-gray-400">
-                    {n.tipo === "llegada" ? "Llegó • Ir a buscarlo" : "Retiro • Llevarlo al hall"}
+                    {n.tipo === "llegada" ? "Lo dejaron • Tía va por él" : "Lo buscan • Tía lo trae"}
                     {n.confirmado_at && (
                       <span className="text-emerald-500 ml-1">
-                        • Tía confirmó {formatHora(n.confirmado_at)}
+                        • Listo {formatHora(n.confirmado_at)}
                       </span>
                     )}
                   </span>
