@@ -71,15 +71,15 @@ export default function RecepcionClient() {
     <div className="mx-auto max-w-lg px-4 py-8">
       {/* Header */}
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-100">
-          <i className="ti ti-door-enter text-purple-600" style={{ fontSize: 28 }} aria-hidden="true" />
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100">
+          <span style={{ fontSize: 28 }}>🧸</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-800">Recepción</h1>
         <p className="text-sm text-gray-500 mt-1">Avisa a Play que llegó un niño</p>
       </div>
 
       {/* Input */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100 mb-6">
+      <div className="rounded-2xl bg-white p-5 shadow-sm border border-amber-100 mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Nombre del niño
         </label>
@@ -93,15 +93,15 @@ export default function RecepcionClient() {
             placeholder="Ej: Mateo López"
             autoFocus
             className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300
+                       focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300
                        disabled:opacity-50"
             disabled={busy}
           />
           <button
             onClick={enviar}
             disabled={busy || !nombre.trim()}
-            className="rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white
-                       transition hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed
+            className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white
+                       transition hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed
                        flex items-center gap-2 whitespace-nowrap"
           >
             {busy ? (
@@ -133,7 +133,7 @@ export default function RecepcionClient() {
         </h2>
 
         {historial.length === 0 ? (
-          <div className="rounded-2xl bg-white/60 border border-gray-100 px-5 py-8 text-center text-sm text-gray-400">
+          <div className="rounded-2xl bg-white/60 border border-amber-100 px-5 py-8 text-center text-sm text-gray-400">
             <i className="ti ti-inbox text-2xl mb-2 block opacity-40" aria-hidden="true" />
             No se han enviado avisos hoy
           </div>
@@ -142,10 +142,10 @@ export default function RecepcionClient() {
             {historial.map((n) => (
               <div
                 key={n.id}
-                className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 border border-gray-100 shadow-xs"
+                className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 border border-amber-100 shadow-xs"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-50">
-                  <i className="ti ti-user text-purple-500" style={{ fontSize: 14 }} aria-hidden="true" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
+                  <i className="ti ti-user text-amber-500" style={{ fontSize: 14 }} aria-hidden="true" />
                 </div>
                 <span className="flex-1 text-sm font-medium text-gray-800">{n.nombre}</span>
                 <span className="text-xs text-gray-400">{formatHora(n.created_at)}</span>

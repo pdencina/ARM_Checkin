@@ -15,7 +15,7 @@ function launchConfetti(canvas: HTMLCanvasElement) {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const colors = ["#7c3aed", "#f59e0b", "#10b981", "#ec4899", "#6366f1", "#f97316"];
+  const colors = ["#f59e0b", "#fb923c", "#10b981", "#ec4899", "#6366f1", "#facc15"];
   const particles: {
     x: number; y: number; w: number; h: number;
     color: string; vx: number; vy: number; rot: number; rotSpeed: number;
@@ -151,8 +151,8 @@ export default function PlayClient() {
   if (!audioEnabled) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 text-center px-4">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-purple-100">
-          <i className="ti ti-volume text-purple-600" style={{ fontSize: 40 }} aria-hidden="true" />
+        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-amber-100">
+          <span style={{ fontSize: 44 }}>🧸</span>
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Pantalla Play</h1>
@@ -162,8 +162,8 @@ export default function PlayClient() {
         </div>
         <button
           onClick={enableAudio}
-          className="rounded-xl bg-purple-600 px-8 py-4 text-base font-semibold text-white
-                     transition hover:bg-purple-700 flex items-center gap-2"
+          className="rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white
+                     transition hover:bg-amber-600 flex items-center gap-2"
         >
           <i className="ti ti-volume" style={{ fontSize: 22 }} aria-hidden="true" />
           Activar sonido
@@ -183,7 +183,7 @@ export default function PlayClient() {
         </div>
 
         <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-white/80 shadow-sm">
-          <i className="ti ti-bell-z text-gray-300" style={{ fontSize: 48 }} aria-hidden="true" />
+          <span style={{ fontSize: 52 }}>🧸</span>
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-700">Esperando niños…</h1>
@@ -208,20 +208,20 @@ export default function PlayClient() {
 
       {/* Badge cola */}
       {queue.length > 1 && (
-        <div className="absolute top-5 left-5 rounded-full bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white">
+        <div className="absolute top-5 left-5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white">
           +{queue.length - 1} en espera
         </div>
       )}
 
       {/* Contenido */}
       <div className="animate-bounce">
-        <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-purple-100 mx-auto">
-          <i className="ti ti-bell-ringing-2 text-purple-600" style={{ fontSize: 56 }} aria-hidden="true" />
+        <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-amber-100 mx-auto">
+          <span style={{ fontSize: 64 }}>🧸</span>
         </div>
       </div>
 
       <div>
-        <p className="text-sm font-semibold text-purple-500 uppercase tracking-wider mb-2">
+        <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">
           Llegó a recepción
         </p>
         <h1 className="text-5xl font-bold text-gray-800 md:text-6xl">
@@ -234,8 +234,8 @@ export default function PlayClient() {
 
       <button
         onClick={dismiss}
-        className="mt-4 rounded-xl bg-purple-600 px-10 py-4 text-lg font-semibold text-white
-                   transition hover:bg-purple-700 flex items-center gap-2"
+        className="mt-4 rounded-xl bg-amber-500 px-10 py-4 text-lg font-semibold text-white
+                   transition hover:bg-amber-600 flex items-center gap-2"
       >
         <i className="ti ti-check" style={{ fontSize: 24 }} aria-hidden="true" />
         Entendido, voy!

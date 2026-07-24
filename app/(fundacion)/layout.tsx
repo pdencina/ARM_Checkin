@@ -30,18 +30,18 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
   }
 
   if (!mounted) {
-    return <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50" />;
+    return <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50" />;
   }
 
   if (!authed) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 px-4">
         <form onSubmit={submit} className="w-full max-w-xs text-center">
           <div className="mb-6">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100">
-              <i className="ti ti-mood-kid text-purple-600" style={{ fontSize: 32 }} aria-hidden="true" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100">
+              <span style={{ fontSize: 32 }}>🧸</span>
             </div>
-            <h1 className="text-xl font-bold text-gray-800">Fundación Play</h1>
+            <h1 className="text-xl font-bold text-gray-800">Play & Group</h1>
             <p className="text-sm text-gray-500 mt-1">Ingresa el PIN para continuar</p>
           </div>
 
@@ -54,7 +54,7 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
             placeholder="• • • •"
             autoFocus
             className={`w-full rounded-xl border-2 px-4 py-3 text-center text-2xl tracking-[0.3em]
-                       font-mono transition focus:outline-none focus:ring-2 focus:ring-purple-300
+                       font-mono transition focus:outline-none focus:ring-2 focus:ring-amber-300
                        ${error ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"}`}
           />
 
@@ -65,8 +65,8 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
           <button
             type="submit"
             disabled={pin.length < 4}
-            className="mt-4 w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold
-                       text-white transition hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="mt-4 w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold
+                       text-white transition hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Entrar
           </button>
@@ -76,7 +76,7 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
       {children}
     </div>
   );
