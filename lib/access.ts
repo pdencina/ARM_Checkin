@@ -69,8 +69,6 @@ export async function getAccess(): Promise<Access | null> {
     if (m.key === "panoramica") return isSuperAdmin;
     if (m.key === "campuses")   return isSuperAdmin;
     if (m.key === "llamar")     return can("checkout");
-    if (m.key === "recepcion")  return can("checkin");
-    if (m.key === "play")       return can("checkin");
     return can(m.key);
   }).map((m) => ({ key: m.key, label: m.label, href: m.href, icon: m.icon }));
 

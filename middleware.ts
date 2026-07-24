@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isLogin = path === "/login";
-  const isPublic = path.startsWith("/mi-qr") || path === "/miqr" || path === "/pantalla";
+  const isPublic = path.startsWith("/mi-qr") || path === "/miqr" || path === "/pantalla" || path === "/recepcion" || path === "/play";
 
   if (!user && !isLogin && !isPublic) {
     const url = request.nextUrl.clone();
