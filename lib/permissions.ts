@@ -5,6 +5,8 @@ export const MODULES = [
   { key: "checkin",     label: "Check-in",     href: "/checkin",     icon: "ti-ticket"           },
   { key: "checkout",    label: "Check-out",    href: "/checkout",    icon: "ti-door-exit"        },
   { key: "llamar",     label: "Llamar",       href: "/llamar",      icon: "ti-bell-ringing"     },
+  { key: "recepcion",  label: "Recepción",    href: "/recepcion",   icon: "ti-door-enter"       },
+  { key: "play",       label: "Play",         href: "/play",        icon: "ti-mood-kid"         },
   { key: "familias",    label: "Familias",     href: "/familias",    icon: "ti-users-group"      },
   { key: "voluntarios", label: "Voluntarios",  href: "/voluntarios", icon: "ti-heart-handshake"  },
   { key: "reportes",    label: "Reportes",     href: "/reportes",    icon: "ti-chart-bar"        },
