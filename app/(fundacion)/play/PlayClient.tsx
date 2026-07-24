@@ -89,9 +89,22 @@ function launchConfetti(canvas: HTMLCanvasElement) {
 }
 
 // ── Sonido campanita alegre ───────────────────────────────
+// Usa un AudioContext persistente que se desbloquea con interacción del usuario
+let sharedAudioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext {
+  if (!sharedAudioCtx || sharedAudioCtx.state === "closed") {
+    sharedAudioCtx = new AudioContext();
+  }
+  if (sharedAudioCtx.state === "suspended") {
+    sharedAudioCtx.resume();
+  }
+  return sharedAudioCtx;
+}
+
 function playChime() {
   try {
-    const ctx = new AudioContext();
+    const ctx = getAudioContext();
     const now = ctx.currentTime;
 
     // Acorde alegre (C-E-G-C alto)
@@ -107,8 +120,6 @@ function playChime() {
       osc.start(now + i * 0.1);
       osc.stop(now + i * 0.1 + 0.5);
     });
-
-    setTimeout(() => ctx.close(), 1500);
   } catch {
     // Silently ignore
   }
@@ -122,8 +133,17 @@ export default function PlayClient() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   function enableAudio() {
-    const ctx = new AudioContext();
-    ctx.resume().then(() => ctx.close());
+    // Desbloquear el AudioContext con la interacción del usuario
+    const ctx = getAudioContext();
+    ctx.resume().then(() => {
+      // Reproducir un sonido corto silencioso para confirmar desbloqueo
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.01; // casi inaudible
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    });
     setAudioEnabled(true);
   }
 

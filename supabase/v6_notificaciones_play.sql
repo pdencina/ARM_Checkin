@@ -9,17 +9,17 @@ create table if not exists notificaciones (
   created_at timestamptz default now()
 );
 
--- RLS básico: cualquier usuario autenticado puede insertar y leer
+-- RLS: permitir acceso a anon y authenticated (las pantallas de fundación no tienen login)
 alter table notificaciones enable row level security;
 
-create policy "Usuarios autenticados pueden insertar notificaciones"
+create policy "Cualquiera puede insertar notificaciones"
   on notificaciones for insert
-  to authenticated
+  to anon, authenticated
   with check (true);
 
-create policy "Usuarios autenticados pueden leer notificaciones"
+create policy "Cualquiera puede leer notificaciones"
   on notificaciones for select
-  to authenticated
+  to anon, authenticated
   using (true);
 
 -- Habilitar Realtime en la tabla
