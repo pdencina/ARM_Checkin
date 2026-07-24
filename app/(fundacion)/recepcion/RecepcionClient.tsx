@@ -1,64 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Notificacion {
   id: string;
   nombre: string;
-  tipo: "llegada" | "entrega";
+  tipo: "llegada" | "retiro";
   confirmado_at: string | null;
   created_at: string;
-}
-
-// ── Sonido para entrega (ding-dong suave) ─────────────────
-let sharedAudioCtx: AudioContext | null = null;
-
-function getAudioContext(): AudioContext {
-  if (!sharedAudioCtx || sharedAudioCtx.state === "closed") {
-    sharedAudioCtx = new AudioContext();
-  }
-  if (sharedAudioCtx.state === "suspended") {
-    sharedAudioCtx.resume();
-  }
-  return sharedAudioCtx;
-}
-
-function playDingDong() {
-  try {
-    const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.value = 660;
-    gain1.gain.setValueAtTime(0.3, now);
-    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-    osc1.connect(gain1).connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.4);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.value = 880;
-    gain2.gain.setValueAtTime(0.3, now + 0.2);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-    osc2.connect(gain2).connect(ctx.destination);
-    osc2.start(now + 0.2);
-    osc2.stop(now + 0.6);
-  } catch { /* ignore */ }
 }
 
 export default function RecepcionClient() {
   const supabase = createClient();
   const [nombre, setNombre] = useState("");
   const [historial, setHistorial] = useState<Notificacion[]>([]);
-  const [entregas, setEntregas] = useState<Notificacion[]>([]); // cola de entregas pendientes
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [connected, setConnected] = useState(false);
-  const [audioEnabled, setAudioEnabled] = useState(false);
   const [sent, setSent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -80,23 +39,10 @@ export default function RecepcionClient() {
     load();
   }, []);
 
-  // Escuchar INSERT de entregas y UPDATEs de confirmación
+  // Escuchar UPDATEs de confirmación en tiempo real
   useEffect(() => {
     const channel = supabase
       .channel("notificaciones-recepcion")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notificaciones" },
-        (payload) => {
-          const nuevo = payload.new as Notificacion;
-          if (nuevo.tipo === "entrega") {
-            // Play está trayendo un niño al hall
-            setEntregas((prev) => [...prev, nuevo]);
-            if (audioEnabled) playDingDong();
-          }
-          setHistorial((prev) => [nuevo, ...prev]);
-        }
-      )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "notificaciones" },
@@ -111,24 +57,10 @@ export default function RecepcionClient() {
         setConnected(status === "SUBSCRIBED");
       });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [audioEnabled]);
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
-  // Confirmar recepción de una entrega
-  const confirmarEntrega = useCallback(async () => {
-    const current = entregas[0];
-    if (current) {
-      await supabase
-        .from("notificaciones")
-        .update({ confirmado_at: new Date().toISOString() })
-        .eq("id", current.id);
-    }
-    setEntregas((prev) => prev.slice(1));
-  }, [entregas]);
-
-  async function enviar() {
+  async function enviar(tipo: "llegada" | "retiro") {
     const trimmed = nombre.trim();
     if (!trimmed) return;
     setBusy(true);
@@ -136,13 +68,14 @@ export default function RecepcionClient() {
     try {
       const { data, error } = await supabase
         .from("notificaciones")
-        .insert({ nombre: trimmed, tipo: "llegada" })
+        .insert({ nombre: trimmed, tipo })
         .select("id, nombre, tipo, confirmado_at, created_at")
         .single();
       if (error) throw error;
       setHistorial((prev) => [data as Notificacion, ...prev]);
       setNombre("");
-      setFeedback({ msg: `${trimmed} avisado ✓`, type: "ok" });
+      const label = tipo === "llegada" ? "Llegada" : "Retiro";
+      setFeedback({ msg: `${label}: ${trimmed} avisado ✓`, type: "ok" });
       setSent(true);
       setTimeout(() => setSent(false), 600);
       inputRef.current?.focus();
@@ -157,15 +90,13 @@ export default function RecepcionClient() {
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") {
       e.preventDefault();
-      enviar();
+      enviar("llegada");
     }
   }
 
   function formatHora(iso: string) {
     return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
   }
-
-  const entregaActual = entregas[0] ?? null;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
@@ -175,54 +106,7 @@ export default function RecepcionClient() {
         <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Sin conexión"}</span>
       </div>
 
-      {/* Activar sonido (una vez) */}
-      {!audioEnabled && (
-        <div className="fixed top-4 left-4">
-          <button
-            onClick={() => { getAudioContext(); setAudioEnabled(true); }}
-            className="flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50
-                       text-xs font-semibold text-gray-600 hover:bg-white transition-all"
-          >
-            <span>🔇</span> Activar sonido
-          </button>
-        </div>
-      )}
-
-      {/* ═══ NOTIFICACIÓN DE ENTREGA (Play trae un niño) ═══ */}
-      {entregaActual && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-[2rem] bg-white/95 backdrop-blur-xl p-8 shadow-2xl border border-white/60 animate-pop-in text-center">
-            <span className="text-5xl block mb-3 animate-bounce">🚶‍♀️</span>
-            <p className="text-xs font-black text-orange-500 uppercase tracking-[0.15em] mb-2">
-              Viene de Play al hall
-            </p>
-            <h2 className="text-4xl font-black text-gray-800 mb-1">
-              {entregaActual.nombre}
-            </h2>
-            <p className="text-sm text-gray-400 mb-6">
-              La tía lo está trayendo, recíbelo 🤗
-            </p>
-
-            {entregas.length > 1 && (
-              <p className="text-xs font-bold text-purple-500 mb-4">
-                +{entregas.length - 1} más en camino
-              </p>
-            )}
-
-            <button
-              onClick={confirmarEntrega}
-              className="w-full rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400
-                         px-6 py-4 text-lg font-bold text-white shadow-lg shadow-orange-200/50
-                         transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.97]
-                         flex items-center justify-center gap-2"
-            >
-              <span>✅</span> Recibido, gracias!
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ CARD PRINCIPAL (enviar llegada) ═══ */}
+      {/* Card principal */}
       <div className={`w-full max-w-md rounded-[2rem] bg-white/90 backdrop-blur-xl p-8 shadow-2xl border border-white/60
                        transition-all duration-300 ${sent ? "scale-[1.02] shadow-emerald-200/50" : ""}`}>
         {/* Header */}
@@ -231,7 +115,7 @@ export default function RecepcionClient() {
             <span className="text-3xl">🎈</span>
           </div>
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">Recepción</h1>
-          <p className="text-sm text-gray-400 mt-1">Avisa a Play que llegó un niño 🌟</p>
+          <p className="text-sm text-gray-400 mt-1">Avisa a las tías de Play</p>
         </div>
 
         {/* Input */}
@@ -255,26 +139,40 @@ export default function RecepcionClient() {
           />
         </div>
 
-        {/* Botón Avisar */}
-        <button
-          onClick={enviar}
-          disabled={busy || !nombre.trim()}
-          className="w-full rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500
-                     px-5 py-4 text-lg font-bold text-white
-                     shadow-lg shadow-purple-300/40
-                     transition-all duration-200 hover:shadow-xl hover:shadow-purple-300/60 hover:scale-[1.02]
-                     active:scale-[0.97]
-                     disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg
-                     flex items-center justify-center gap-2"
-        >
-          {busy ? (
-            <span className="animate-spin text-xl">✨</span>
-          ) : (
-            <>
-              <span className="text-xl">📣</span> Avisar a Play
-            </>
-          )}
-        </button>
+        {/* Dos botones: Llegada y Retiro */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => enviar("llegada")}
+            disabled={busy || !nombre.trim()}
+            className="rounded-2xl bg-gradient-to-r from-violet-500 to-purple-500
+                       px-4 py-4 text-sm font-bold text-white
+                       shadow-lg shadow-purple-300/30
+                       transition-all duration-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.97]
+                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
+                       flex flex-col items-center gap-1"
+          >
+            <span className="text-xl">🧸</span>
+            <span>Llegó</span>
+            <span className="text-[10px] font-normal opacity-80">Vienen a dejarlo</span>
+          </button>
+
+          <button
+            onClick={() => enviar("retiro")}
+            disabled={busy || !nombre.trim()}
+            className="rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400
+                       px-4 py-4 text-sm font-bold text-white
+                       shadow-lg shadow-orange-200/30
+                       transition-all duration-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.97]
+                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
+                       flex flex-col items-center gap-1"
+          >
+            <span className="text-xl">👋</span>
+            <span>Retiro</span>
+            <span className="text-[10px] font-normal opacity-80">Vienen a buscarlo</span>
+          </button>
+        </div>
+
+        <p className="text-[10px] text-gray-300 text-center mt-3">Enter = enviar como Llegada</p>
 
         {/* Feedback */}
         {feedback && (
@@ -302,7 +200,7 @@ export default function RecepcionClient() {
             Hoy — {historial.length} movimientos
           </h2>
           <div className="space-y-2">
-            {historial.slice(0, 10).map((n, i) => (
+            {historial.slice(0, 12).map((n, i) => (
               <div
                 key={n.id}
                 className={`flex items-center gap-3 rounded-2xl backdrop-blur-lg px-4 py-3 shadow-md border
@@ -320,7 +218,9 @@ export default function RecepcionClient() {
                       ? "bg-gradient-to-br from-purple-100 to-pink-100"
                       : "bg-gradient-to-br from-orange-100 to-amber-100"}`}>
                   <span className="text-sm">
-                    {n.confirmado_at ? "✅" : n.tipo === "llegada" ? "📣" : "🚶‍♀️"}
+                    {n.confirmado_at
+                      ? "✅"
+                      : n.tipo === "llegada" ? "🧸" : "👋"}
                   </span>
                 </div>
 
@@ -328,9 +228,11 @@ export default function RecepcionClient() {
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
                   <span className="text-[10px] font-semibold text-gray-400">
-                    {n.tipo === "llegada" ? "Llegó → Play" : "Play → Hall"}
+                    {n.tipo === "llegada" ? "Llegó • Ir a buscarlo" : "Retiro • Llevarlo al hall"}
                     {n.confirmado_at && (
-                      <span className="text-emerald-500 ml-1">• Confirmado {formatHora(n.confirmado_at)}</span>
+                      <span className="text-emerald-500 ml-1">
+                        • Tía confirmó {formatHora(n.confirmado_at)}
+                      </span>
                     )}
                   </span>
                 </div>
@@ -347,9 +249,9 @@ export default function RecepcionClient() {
                 </div>
               </div>
             ))}
-            {historial.length > 10 && (
+            {historial.length > 12 && (
               <p className="text-center text-xs text-white/40 pt-1 font-medium">
-                +{historial.length - 10} más hoy
+                +{historial.length - 12} más hoy
               </p>
             )}
           </div>

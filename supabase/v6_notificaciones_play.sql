@@ -1,17 +1,17 @@
 -- ============================================================
--- v6: Tabla de notificaciones Recepción ↔ Play (bidireccional)
+-- v6: Tabla de notificaciones Recepción → Play (bidireccional)
 -- ============================================================
 
 create table if not exists notificaciones (
   id            uuid        default gen_random_uuid() primary key,
   nombre        text        not null,
-  tipo          text        not null default 'llegada',  -- 'llegada' (recepción→play) o 'entrega' (play→recepción)
+  tipo          text        not null default 'llegada',  -- 'llegada' o 'retiro'
   campus_id     uuid        references campuses(id),
   confirmado_at timestamptz default null,
   created_at    timestamptz default now()
 );
 
--- RLS: permitir acceso a anon y authenticated (las pantallas no tienen login)
+-- RLS: acceso abierto para anon y authenticated
 alter table notificaciones enable row level security;
 
 create policy "Cualquiera puede insertar notificaciones"
@@ -30,5 +30,5 @@ create policy "Cualquiera puede actualizar notificaciones"
   using (true)
   with check (true);
 
--- Habilitar Realtime en la tabla (INSERT y UPDATE)
+-- Habilitar Realtime
 alter publication supabase_realtime add table notificaciones;
