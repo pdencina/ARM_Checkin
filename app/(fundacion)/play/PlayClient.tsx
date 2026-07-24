@@ -169,9 +169,17 @@ export default function PlayClient() {
     };
   }, [audioEnabled]);
 
-  const dismiss = useCallback(() => {
+  const dismiss = useCallback(async () => {
+    const current = queue[0];
+    if (current) {
+      // Marcar como confirmado en Supabase
+      await supabase
+        .from("notificaciones")
+        .update({ confirmado_at: new Date().toISOString() })
+        .eq("id", current.id);
+    }
     setQueue((prev) => prev.slice(1));
-  }, []);
+  }, [queue]);
 
   const current = queue[0] ?? null;
 

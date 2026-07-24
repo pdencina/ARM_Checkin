@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 interface Notificacion {
   id: string;
   nombre: string;
+  confirmado_at: string | null;
   created_at: string;
 }
 
@@ -19,13 +20,14 @@ export default function RecepcionClient() {
   const [sent, setSent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Cargar historial del día
   useEffect(() => {
     async function load() {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("notificaciones")
-        .select("id, nombre, created_at")
+        .select("id, nombre, confirmado_at, created_at")
         .gte("created_at", hoy.toISOString())
         .order("created_at", { ascending: false });
       if (data) {
@@ -34,6 +36,27 @@ export default function RecepcionClient() {
       }
     }
     load();
+  }, []);
+
+  // Escuchar confirmaciones en tiempo real
+  useEffect(() => {
+    const channel = supabase
+      .channel("notificaciones-recepcion")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notificaciones" },
+        (payload) => {
+          const updated = payload.new as Notificacion;
+          setHistorial((prev) =>
+            prev.map((n) => (n.id === updated.id ? { ...n, confirmado_at: updated.confirmado_at } : n))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function enviar() {
@@ -45,7 +68,7 @@ export default function RecepcionClient() {
       const { data, error } = await supabase
         .from("notificaciones")
         .insert({ nombre: trimmed })
-        .select("id, nombre, created_at")
+        .select("id, nombre, confirmado_at, created_at")
         .single();
       if (error) throw error;
       setHistorial((prev) => [data, ...prev]);
@@ -81,12 +104,12 @@ export default function RecepcionClient() {
         <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Sin conexión"}</span>
       </div>
 
-      {/* Card principal con efecto glassmorphism */}
+      {/* Card principal */}
       <div className={`w-full max-w-md rounded-[2rem] bg-white/90 backdrop-blur-xl p-8 shadow-2xl border border-white/60
                        transition-all duration-300 ${sent ? "scale-[1.02] shadow-emerald-200/50" : ""}`}>
         {/* Header */}
         <div className="mb-7 text-center">
-          <div className="mx-auto mb-3 h-16 w-16 rounded-2xl bg-gradient-to-br from-pink-100 to-orange-100 flex items-center justify-center shadow-sm animate-float-slow">
+          <div className="mx-auto mb-3 h-16 w-16 rounded-2xl bg-gradient-to-br from-pink-100 to-orange-100 flex items-center justify-center animate-float-slow">
             <span className="text-3xl">🎈</span>
           </div>
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">Recepción</h1>
@@ -154,30 +177,55 @@ export default function RecepcionClient() {
         </div>
       </div>
 
-      {/* Historial del día */}
+      {/* Historial del día con estados */}
       {historial.length > 0 && (
         <div className="w-full max-w-md mt-6 animate-slide-up">
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/60 mb-3 px-2">
             Hoy — {historial.length} {historial.length === 1 ? "niño" : "niños"}
           </h2>
           <div className="space-y-2">
-            {historial.slice(0, 6).map((n, i) => (
+            {historial.slice(0, 10).map((n, i) => (
               <div
                 key={n.id}
-                className="flex items-center gap-3 rounded-2xl bg-white/80 backdrop-blur-lg px-4 py-3 shadow-md border border-white/50
-                           transition-all hover:scale-[1.01] hover:shadow-lg"
+                className={`flex items-center gap-3 rounded-2xl backdrop-blur-lg px-4 py-3 shadow-md border
+                           transition-all hover:scale-[1.01] hover:shadow-lg
+                           ${n.confirmado_at
+                             ? "bg-emerald-50/90 border-emerald-200/50"
+                             : "bg-white/80 border-white/50"}`}
                 style={{ animationDelay: `${i * 50}ms` }}
               >
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                  <span className="text-sm">👶</span>
+                {/* Ícono de estado */}
+                <div className={`h-9 w-9 rounded-xl flex items-center justify-center
+                  ${n.confirmado_at
+                    ? "bg-gradient-to-br from-emerald-100 to-teal-100"
+                    : "bg-gradient-to-br from-purple-100 to-pink-100"}`}>
+                  <span className="text-sm">{n.confirmado_at ? "✅" : "⏳"}</span>
                 </div>
-                <span className="flex-1 text-sm font-bold text-gray-700">{n.nombre}</span>
-                <span className="text-xs text-gray-400 font-semibold bg-gray-100 px-2 py-0.5 rounded-full">{formatHora(n.created_at)}</span>
+
+                {/* Nombre */}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
+                  {n.confirmado_at && (
+                    <span className="text-[10px] font-semibold text-emerald-500">
+                      Tía confirmó a las {formatHora(n.confirmado_at)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Hora + badge */}
+                <div className="text-right shrink-0">
+                  <span className="text-xs text-gray-400 font-semibold block">{formatHora(n.created_at)}</span>
+                  {!n.confirmado_at && (
+                    <span className="inline-block mt-0.5 text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full">
+                      Esperando
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
-            {historial.length > 6 && (
+            {historial.length > 10 && (
               <p className="text-center text-xs text-white/40 pt-1 font-medium">
-                +{historial.length - 6} más hoy
+                +{historial.length - 10} más hoy
               </p>
             )}
           </div>
