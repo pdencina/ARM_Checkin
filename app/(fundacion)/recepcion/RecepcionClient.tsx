@@ -25,6 +25,8 @@ export default function RecepcionClient() {
   const [showSugerencias, setShowSugerencias] = useState(false);
   const [semana, setSemana] = useState<{ dia: string; total: number }[]>([]);
   const [tab, setTab] = useState<"historial" | "stats">("historial");
+  const [ultimoEnviado, setUltimoEnviado] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState<"todos" | "pendientes" | "confirmados" | "llegadas" | "retiros">("todos");
   const inputRef = useRef<HTMLInputElement>(null);
   const sugRef = useRef<HTMLDivElement>(null);
 
@@ -170,6 +172,7 @@ export default function RecepcionClient() {
         .single();
       if (error) throw error;
       setHistorial((prev) => [data as Notificacion, ...prev]);
+      setUltimoEnviado(trimmed);
       setNombre("");
       const label = tipo === "llegada" ? "Dejaron a" : "Buscan a";
       setFeedback({ msg: `${label} ${trimmed} — avisado ✓`, type: "ok" });
@@ -188,6 +191,32 @@ export default function RecepcionClient() {
     if (e.key === "Enter") {
       e.preventDefault();
       enviar("llegada");
+    }
+  }
+
+  // Enviar directo con nombre y tipo (para repetir último)
+  async function enviarDirecto(nombreDirecto: string, tipo: "llegada" | "retiro") {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const { data, error } = await supabase
+        .from("notificaciones")
+        .insert({ nombre: nombreDirecto, tipo })
+        .select("id, nombre, tipo, confirmado_at, created_at")
+        .single();
+      if (error) throw error;
+      setHistorial((prev) => [data as Notificacion, ...prev]);
+      setUltimoEnviado(nombreDirecto);
+      setNombre("");
+      const label = tipo === "llegada" ? "Dejaron a" : "Buscan a";
+      setFeedback({ msg: `${label} ${nombreDirecto} — avisado ✓`, type: "ok" });
+      setSent(true);
+      setTimeout(() => setSent(false), 600);
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (e: any) {
+      setFeedback({ msg: "Error: " + (e.message ?? "intenta nuevamente."), type: "err" });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -230,6 +259,15 @@ export default function RecepcionClient() {
   })();
 
   const semanaMax = Math.max(...semana.map((d) => d.total), 1);
+
+  // Historial filtrado
+  const historialFiltrado = historial.filter((n) => {
+    if (filtro === "pendientes") return !n.confirmado_at;
+    if (filtro === "confirmados") return !!n.confirmado_at;
+    if (filtro === "llegadas") return n.tipo === "llegada";
+    if (filtro === "retiros") return n.tipo === "retiro";
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
@@ -354,6 +392,30 @@ export default function RecepcionClient() {
 
         <p className="text-[10px] text-gray-300 text-center mt-3">Enter = enviar como Llegada</p>
 
+        {/* Botón repetir último */}
+        {ultimoEnviado && !nombre.trim() && (
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => { setNombre(ultimoEnviado); enviarDirecto(ultimoEnviado, "retiro"); }}
+              disabled={busy}
+              className="flex-1 rounded-xl bg-orange-50 border border-orange-100 px-3 py-2.5 text-xs font-bold text-orange-600
+                         transition-all hover:bg-orange-100 hover:scale-[1.01] active:scale-[0.98]
+                         disabled:opacity-40 flex items-center justify-center gap-1.5"
+            >
+              <span>🔁</span> {ultimoEnviado} → Retiro
+            </button>
+            <button
+              onClick={() => { setNombre(ultimoEnviado); enviarDirecto(ultimoEnviado, "llegada"); }}
+              disabled={busy}
+              className="flex-1 rounded-xl bg-purple-50 border border-purple-100 px-3 py-2.5 text-xs font-bold text-purple-600
+                         transition-all hover:bg-purple-100 hover:scale-[1.01] active:scale-[0.98]
+                         disabled:opacity-40 flex items-center justify-center gap-1.5"
+            >
+              <span>🔁</span> {ultimoEnviado} → Llegada
+            </button>
+          </div>
+        )}
+
         {/* Feedback */}
         {feedback && (
           <div className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold text-center animate-pop-in
@@ -397,7 +459,34 @@ export default function RecepcionClient() {
           {/* Tab: Historial */}
           {tab === "historial" && (
             <div className="space-y-2">
-              {historial.slice(0, 12).map((n, i) => (
+              {/* Filtros */}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {([
+                  { key: "todos", label: "Todos" },
+                  { key: "pendientes", label: "⏳ Pendientes" },
+                  { key: "confirmados", label: "✅ Listos" },
+                  { key: "llegadas", label: "🧸 Llegadas" },
+                  { key: "retiros", label: "👋 Retiros" },
+                ] as const).map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFiltro(f.key)}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-all
+                      ${filtro === f.key
+                        ? "bg-white/90 text-gray-700 shadow-sm"
+                        : "bg-white/30 text-white/70 hover:bg-white/50"}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {historialFiltrado.length === 0 ? (
+                <div className="rounded-2xl bg-white/60 backdrop-blur px-5 py-6 text-center text-sm text-gray-400">
+                  Nada por aquí con ese filtro
+                </div>
+              ) : (
+                historialFiltrado.slice(0, 12).map((n, i) => (
                 <div
                   key={n.id}
                   className={`flex items-center gap-3 rounded-2xl backdrop-blur-lg px-4 py-3 shadow-md border
@@ -443,10 +532,11 @@ export default function RecepcionClient() {
                     )}
                   </div>
                 </div>
-              ))}
-              {historial.length > 12 && (
+              ))
+              )}
+              {historialFiltrado.length > 12 && (
                 <p className="text-center text-xs text-white/40 pt-1 font-medium">
-                  +{historial.length - 12} más hoy
+                  +{historialFiltrado.length - 12} más
                 </p>
               )}
             </div>
