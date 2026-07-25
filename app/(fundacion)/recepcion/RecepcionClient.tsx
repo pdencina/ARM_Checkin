@@ -23,6 +23,8 @@ export default function RecepcionClient() {
   const [nombres, setNombres] = useState<string[]>([]); // lista para autocompletado
   const [sugerencias, setSugerencias] = useState<string[]>([]);
   const [showSugerencias, setShowSugerencias] = useState(false);
+  const [semana, setSemana] = useState<{ dia: string; total: number }[]>([]);
+  const [tab, setTab] = useState<"historial" | "stats">("historial");
   const inputRef = useRef<HTMLInputElement>(null);
   const sugRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +52,34 @@ export default function RecepcionClient() {
       setNombres(Array.from(set).sort((a, b) => a.localeCompare(b, "es")));
     }
     loadNombres();
+  }, []);
+
+  // Cargar datos semanales para estadísticas
+  useEffect(() => {
+    async function loadSemana() {
+      const hoy = new Date();
+      const lunes = new Date(hoy);
+      lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7)); // lunes de esta semana
+      lunes.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from("notificaciones")
+        .select("created_at")
+        .gte("created_at", lunes.toISOString())
+        .order("created_at");
+
+      if (data) {
+        const dias = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+        const conteo: number[] = [0, 0, 0, 0, 0, 0, 0];
+        data.forEach((n: any) => {
+          const d = new Date(n.created_at);
+          const idx = (d.getDay() + 6) % 7; // 0=Lun, 6=Dom
+          conteo[idx]++;
+        });
+        setSemana(dias.map((dia, i) => ({ dia, total: conteo[i] })));
+      }
+    }
+    loadSemana();
   }, []);
 
   // Filtrar sugerencias al escribir
@@ -174,6 +204,32 @@ export default function RecepcionClient() {
     const hrs = Math.floor(min / 60);
     return `${hrs}h ${min % 60}m`;
   }
+
+  // Stats del día
+  const llegadasHoy = historial.filter((n) => n.tipo === "llegada").length;
+  const retirosHoy = historial.filter((n) => n.tipo === "retiro").length;
+  const confirmados = historial.filter((n) => n.confirmado_at);
+  const tiempoPromedio = confirmados.length > 0
+    ? Math.round(confirmados.reduce((acc, n) => {
+        return acc + (new Date(n.confirmado_at!).getTime() - new Date(n.created_at).getTime()) / 1000;
+      }, 0) / confirmados.length)
+    : 0;
+  const tiempoPromedioStr = tiempoPromedio < 60 ? `${tiempoPromedio}s` : `${Math.floor(tiempoPromedio / 60)}m ${tiempoPromedio % 60}s`;
+
+  // Hora peak
+  const horaPeak = (() => {
+    if (historial.length === 0) return "-";
+    const horas: Record<number, number> = {};
+    historial.forEach((n) => {
+      const h = new Date(n.created_at).getHours();
+      horas[h] = (horas[h] || 0) + 1;
+    });
+    const max = Math.max(...Object.values(horas));
+    const peakHour = Object.keys(horas).find((k) => horas[Number(k)] === max);
+    return peakHour ? `${peakHour}:00` : "-";
+  })();
+
+  const semanaMax = Math.max(...semana.map((d) => d.total), 1);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
@@ -317,68 +373,139 @@ export default function RecepcionClient() {
         </div>
       </div>
 
-      {/* ═══ HISTORIAL DEL DÍA ═══ */}
+      {/* ═══ TABS + CONTENIDO ═══ */}
       {historial.length > 0 && (
         <div className="w-full max-w-md mt-6 animate-slide-up">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/60 mb-3 px-2">
-            Hoy — {historial.length} movimientos
-          </h2>
-          <div className="space-y-2">
-            {historial.slice(0, 12).map((n, i) => (
-              <div
-                key={n.id}
-                className={`flex items-center gap-3 rounded-2xl backdrop-blur-lg px-4 py-3 shadow-md border
-                           transition-all hover:scale-[1.01] hover:shadow-lg
-                           ${n.confirmado_at
-                             ? "bg-emerald-50/90 border-emerald-200/50"
-                             : "bg-white/80 border-white/50"}`}
-                style={{ animationDelay: `${i * 50}ms` }}
-              >
-                {/* Ícono según tipo y estado */}
-                <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0
-                  ${n.confirmado_at
-                    ? "bg-gradient-to-br from-emerald-100 to-teal-100"
-                    : n.tipo === "llegada"
-                      ? "bg-gradient-to-br from-purple-100 to-pink-100"
-                      : "bg-gradient-to-br from-orange-100 to-amber-100"}`}>
-                  <span className="text-sm">
-                    {n.confirmado_at
-                      ? "✅"
-                      : n.tipo === "llegada" ? "🧸" : "👋"}
-                  </span>
-                </div>
+          {/* Tabs */}
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <button
+              onClick={() => setTab("historial")}
+              className={`text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all
+                ${tab === "historial" ? "bg-white/80 text-gray-700 shadow-sm" : "text-white/50 hover:text-white/80"}`}
+            >
+              Historial ({historial.length})
+            </button>
+            <button
+              onClick={() => setTab("stats")}
+              className={`text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all
+                ${tab === "stats" ? "bg-white/80 text-gray-700 shadow-sm" : "text-white/50 hover:text-white/80"}`}
+            >
+              📊 Stats
+            </button>
+          </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
-                  <span className="text-[10px] font-semibold text-gray-400">
-                    {n.tipo === "llegada" ? "Lo dejaron • Tía va por él" : "Lo buscan • Tía lo trae"}
-                    {n.confirmado_at && (
-                      <span className="text-emerald-500 ml-1">
-                        • Listo en {tiempoRespuesta(n.created_at, n.confirmado_at)}
+          {/* Tab: Historial */}
+          {tab === "historial" && (
+            <div className="space-y-2">
+              {historial.slice(0, 12).map((n, i) => (
+                <div
+                  key={n.id}
+                  className={`flex items-center gap-3 rounded-2xl backdrop-blur-lg px-4 py-3 shadow-md border
+                             transition-all hover:scale-[1.01] hover:shadow-lg
+                             ${n.confirmado_at
+                               ? "bg-emerald-50/90 border-emerald-200/50"
+                               : "bg-white/80 border-white/50"}`}
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  {/* Ícono según tipo y estado */}
+                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0
+                    ${n.confirmado_at
+                      ? "bg-gradient-to-br from-emerald-100 to-teal-100"
+                      : n.tipo === "llegada"
+                        ? "bg-gradient-to-br from-purple-100 to-pink-100"
+                        : "bg-gradient-to-br from-orange-100 to-amber-100"}`}>
+                    <span className="text-sm">
+                      {n.confirmado_at ? "✅" : n.tipo === "llegada" ? "🧸" : "👋"}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
+                    <span className="text-[10px] font-semibold text-gray-400">
+                      {n.tipo === "llegada" ? "Lo dejaron • Tía va por él" : "Lo buscan • Tía lo trae"}
+                      {n.confirmado_at && (
+                        <span className="text-emerald-500 ml-1">
+                          • Listo en {tiempoRespuesta(n.created_at, n.confirmado_at)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Hora + badge */}
+                  <div className="text-right shrink-0">
+                    <span className="text-xs text-gray-400 font-semibold block">{formatHora(n.created_at)}</span>
+                    {!n.confirmado_at && (
+                      <span className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full
+                        ${n.tipo === "llegada" ? "text-purple-500 bg-purple-50" : "text-orange-500 bg-orange-50"}`}>
+                        Esperando
                       </span>
                     )}
-                  </span>
+                  </div>
                 </div>
+              ))}
+              {historial.length > 12 && (
+                <p className="text-center text-xs text-white/40 pt-1 font-medium">
+                  +{historial.length - 12} más hoy
+                </p>
+              )}
+            </div>
+          )}
 
-                {/* Hora + badge */}
-                <div className="text-right shrink-0">
-                  <span className="text-xs text-gray-400 font-semibold block">{formatHora(n.created_at)}</span>
-                  {!n.confirmado_at && (
-                    <span className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full
-                      ${n.tipo === "llegada" ? "text-purple-500 bg-purple-50" : "text-orange-500 bg-orange-50"}`}>
-                      Esperando
-                    </span>
-                  )}
+          {/* Tab: Stats */}
+          {tab === "stats" && (
+            <div className="space-y-4">
+              {/* Resumen del día */}
+              <div className="rounded-2xl bg-white/85 backdrop-blur-lg p-5 shadow-md border border-white/50">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Resumen de hoy</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-purple-50 p-3 text-center">
+                    <span className="text-2xl font-black text-purple-600 block">{llegadasHoy}</span>
+                    <span className="text-[10px] font-bold text-purple-400">Llegadas 🧸</span>
+                  </div>
+                  <div className="rounded-xl bg-orange-50 p-3 text-center">
+                    <span className="text-2xl font-black text-orange-600 block">{retirosHoy}</span>
+                    <span className="text-[10px] font-bold text-orange-400">Retiros 👋</span>
+                  </div>
+                  <div className="rounded-xl bg-emerald-50 p-3 text-center">
+                    <span className="text-2xl font-black text-emerald-600 block">{tiempoPromedioStr}</span>
+                    <span className="text-[10px] font-bold text-emerald-400">Promedio resp.</span>
+                  </div>
+                  <div className="rounded-xl bg-blue-50 p-3 text-center">
+                    <span className="text-2xl font-black text-blue-600 block">{horaPeak}</span>
+                    <span className="text-[10px] font-bold text-blue-400">Hora peak</span>
+                  </div>
                 </div>
               </div>
-            ))}
-            {historial.length > 12 && (
-              <p className="text-center text-xs text-white/40 pt-1 font-medium">
-                +{historial.length - 12} más hoy
-              </p>
-            )}
-          </div>
+
+              {/* Gráfico semanal */}
+              {semana.length > 0 && (
+                <div className="rounded-2xl bg-white/85 backdrop-blur-lg p-5 shadow-md border border-white/50">
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Esta semana</h3>
+                  <div className="flex items-end justify-between gap-1.5 h-28">
+                    {semana.map((d, i) => {
+                      const height = semanaMax > 0 ? (d.total / semanaMax) * 100 : 0;
+                      const isToday = i === (new Date().getDay() + 6) % 7;
+                      return (
+                        <div key={d.dia} className="flex-1 flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-gray-500">{d.total || ""}</span>
+                          <div
+                            className={`w-full rounded-lg transition-all ${isToday
+                              ? "bg-gradient-to-t from-purple-500 to-pink-400"
+                              : "bg-gradient-to-t from-purple-200 to-pink-100"}`}
+                            style={{ height: `${Math.max(height, 4)}%` }}
+                          />
+                          <span className={`text-[9px] font-bold ${isToday ? "text-purple-600" : "text-gray-400"}`}>
+                            {d.dia}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
