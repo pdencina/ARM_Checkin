@@ -20,7 +20,68 @@ export default function RecepcionClient() {
   const [connected, setConnected] = useState(false);
   const [sent, setSent] = useState(false);
   const [popup, setPopup] = useState<{ nombre: string; tipo: "llegada" | "retiro" } | null>(null);
+  const [nombres, setNombres] = useState<string[]>([]); // lista para autocompletado
+  const [sugerencias, setSugerencias] = useState<string[]>([]);
+  const [showSugerencias, setShowSugerencias] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sugRef = useRef<HTMLDivElement>(null);
+
+  // Cargar nombres de niños para autocompletado
+  useEffect(() => {
+    async function loadNombres() {
+      // Traer de children (registrados en el sistema)
+      const { data: children } = await supabase
+        .from("children")
+        .select("nombre")
+        .eq("activo", true)
+        .order("nombre");
+
+      // Traer nombres únicos de notificaciones pasadas
+      const { data: histNombres } = await supabase
+        .from("notificaciones")
+        .select("nombre")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const set = new Set<string>();
+      (children ?? []).forEach((c: any) => { if (c.nombre) set.add(c.nombre); });
+      (histNombres ?? []).forEach((n: any) => { if (n.nombre) set.add(n.nombre); });
+
+      setNombres(Array.from(set).sort((a, b) => a.localeCompare(b, "es")));
+    }
+    loadNombres();
+  }, []);
+
+  // Filtrar sugerencias al escribir
+  useEffect(() => {
+    const q = nombre.trim().toLowerCase();
+    if (q.length < 2) {
+      setSugerencias([]);
+      setShowSugerencias(false);
+      return;
+    }
+    const filtered = nombres.filter((n) => n.toLowerCase().includes(q)).slice(0, 5);
+    setSugerencias(filtered);
+    setShowSugerencias(filtered.length > 0);
+  }, [nombre, nombres]);
+
+  // Cerrar sugerencias al hacer click fuera
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sugRef.current && !sugRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowSugerencias(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function seleccionarSugerencia(n: string) {
+    setNombre(n);
+    setShowSugerencias(false);
+    inputRef.current?.focus();
+  }
 
   // Cargar historial del día
   useEffect(() => {
@@ -145,8 +206,8 @@ export default function RecepcionClient() {
           <p className="text-sm text-gray-400 mt-1">Avísale a las tías que hay movimiento 💜</p>
         </div>
 
-        {/* Input */}
-        <div className="mb-5">
+        {/* Input con autocompletado */}
+        <div className="mb-5 relative">
           <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">
             ¿Cómo se llama?
           </label>
@@ -156,14 +217,40 @@ export default function RecepcionClient() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => { if (sugerencias.length > 0) setShowSugerencias(true); }}
             placeholder="Ej: Sofía, Mateo..."
             autoFocus
+            autoComplete="off"
             className="w-full rounded-2xl border-2 border-purple-100 bg-purple-50/50 px-5 py-4 text-lg
                        text-gray-800 placeholder:text-gray-300 font-medium
                        focus:outline-none focus:ring-4 focus:ring-purple-200/60 focus:border-purple-300 focus:bg-white
                        transition-all duration-200 disabled:opacity-50"
             disabled={busy}
           />
+
+          {/* Dropdown sugerencias */}
+          {showSugerencias && (
+            <div ref={sugRef} className="absolute z-20 left-0 right-0 mt-1 rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden">
+              {sugerencias.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => seleccionarSugerencia(s)}
+                  className="w-full px-5 py-3 text-left text-sm font-medium text-gray-700
+                             hover:bg-purple-50 transition-colors flex items-center gap-2
+                             border-b border-gray-50 last:border-b-0"
+                >
+                  <span className="text-base">👶</span>
+                  <span dangerouslySetInnerHTML={{
+                    __html: s.replace(
+                      new RegExp(`(${nombre.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi"),
+                      '<span class="font-black text-purple-600">$1</span>'
+                    )
+                  }} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Dos botones: Llegada y Retiro */}
