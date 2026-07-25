@@ -8,17 +8,56 @@ const VALID_PIN = "1234";
 function FloatingShapes() {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden">
-      {/* Formas flotantes animadas */}
-      <div className="absolute top-[10%] left-[5%] h-20 w-20 rounded-full bg-pink-300/20 animate-float-slow" />
-      <div className="absolute top-[60%] left-[80%] h-32 w-32 rounded-full bg-yellow-300/20 animate-float-med" />
-      <div className="absolute top-[30%] right-[10%] h-16 w-16 rounded-full bg-teal-300/20 animate-float-fast" />
-      <div className="absolute bottom-[15%] left-[20%] h-24 w-24 rounded-full bg-purple-300/15 animate-float-med" />
-      <div className="absolute top-[5%] right-[30%] h-14 w-14 rounded-full bg-emerald-300/20 animate-float-slow" />
-      <div className="absolute bottom-[30%] right-[5%] h-20 w-20 rounded-full bg-orange-300/15 animate-float-fast" />
-      {/* Estrellas sutiles */}
-      <div className="absolute top-[20%] left-[40%] text-2xl opacity-20 animate-twinkle">✦</div>
-      <div className="absolute top-[70%] left-[60%] text-xl opacity-15 animate-twinkle-delay">✦</div>
-      <div className="absolute top-[45%] left-[15%] text-lg opacity-20 animate-twinkle">✦</div>
+      {/* Flores lila/margaritas */}
+      <svg className="absolute top-[5%] left-[3%] w-28 h-28 opacity-20 animate-float-slow" viewBox="0 0 100 100" fill="none">
+        <path d="M50 10C53 25 60 30 50 50C40 30 47 25 50 10Z" fill="#b4b8f8"/>
+        <path d="M50 90C47 75 40 70 50 50C60 70 53 75 50 90Z" fill="#b4b8f8"/>
+        <path d="M10 50C25 47 30 40 50 50C30 60 25 53 10 50Z" fill="#b4b8f8"/>
+        <path d="M90 50C75 53 70 60 50 50C70 40 75 47 90 50Z" fill="#b4b8f8"/>
+        <path d="M22 22C35 30 38 37 50 50C37 38 30 35 22 22Z" fill="#b4b8f8"/>
+        <path d="M78 78C65 70 62 63 50 50C63 62 70 65 78 78Z" fill="#b4b8f8"/>
+        <path d="M78 22C70 35 63 38 50 50C62 37 65 30 78 22Z" fill="#b4b8f8"/>
+        <path d="M22 78C30 65 37 62 50 50C38 63 35 70 22 78Z" fill="#b4b8f8"/>
+      </svg>
+
+      <svg className="absolute bottom-[10%] right-[8%] w-36 h-36 opacity-15 animate-float-med" viewBox="0 0 100 100" fill="none">
+        <path d="M50 10C53 25 60 30 50 50C40 30 47 25 50 10Z" fill="#c7cafe"/>
+        <path d="M50 90C47 75 40 70 50 50C60 70 53 75 50 90Z" fill="#c7cafe"/>
+        <path d="M10 50C25 47 30 40 50 50C30 60 25 53 10 50Z" fill="#c7cafe"/>
+        <path d="M90 50C75 53 70 60 50 50C70 40 75 47 90 50Z" fill="#c7cafe"/>
+        <path d="M22 22C35 30 38 37 50 50C37 38 30 35 22 22Z" fill="#c7cafe"/>
+        <path d="M78 78C65 70 62 63 50 50C63 62 70 65 78 78Z" fill="#c7cafe"/>
+        <path d="M78 22C70 35 63 38 50 50C62 37 65 30 78 22Z" fill="#c7cafe"/>
+        <path d="M22 78C30 65 37 62 50 50C38 63 35 70 22 78Z" fill="#c7cafe"/>
+      </svg>
+
+      <svg className="absolute top-[55%] left-[75%] w-20 h-20 opacity-20 animate-float-fast" viewBox="0 0 100 100" fill="none">
+        <path d="M50 10C53 25 60 30 50 50C40 30 47 25 50 10Z" fill="#d4d7fc"/>
+        <path d="M50 90C47 75 40 70 50 50C60 70 53 75 50 90Z" fill="#d4d7fc"/>
+        <path d="M10 50C25 47 30 40 50 50C30 60 25 53 10 50Z" fill="#d4d7fc"/>
+        <path d="M90 50C75 53 70 60 50 50C70 40 75 47 90 50Z" fill="#d4d7fc"/>
+        <path d="M22 22C35 30 38 37 50 50C37 38 30 35 22 22Z" fill="#d4d7fc"/>
+        <path d="M78 78C65 70 62 63 50 50C63 62 70 65 78 78Z" fill="#d4d7fc"/>
+      </svg>
+
+      {/* Rizos/espirales verdes */}
+      <svg className="absolute top-[15%] right-[5%] w-24 h-40 opacity-25 animate-float-med" viewBox="0 0 60 100" fill="none">
+        <path d="M30 5C45 15 50 30 40 40C30 50 25 45 30 35C35 25 45 30 40 45C35 60 25 55 30 50C35 45 45 50 40 65C35 80 25 75 30 70C35 65 45 70 40 85C38 92 32 95 30 95" stroke="#4ade80" strokeWidth="4" strokeLinecap="round" fill="none"/>
+      </svg>
+
+      <svg className="absolute bottom-[20%] left-[8%] w-20 h-32 opacity-20 animate-float-slow" viewBox="0 0 60 100" fill="none">
+        <path d="M30 5C45 15 50 30 40 40C30 50 25 45 30 35C35 25 45 30 40 45C35 60 25 55 30 50C35 45 45 50 40 65C35 80 28 78 30 75" stroke="#34d399" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+      </svg>
+
+      <svg className="absolute top-[40%] left-[50%] w-16 h-28 opacity-15 animate-float-fast" viewBox="0 0 60 100" fill="none">
+        <path d="M30 10C42 18 46 30 38 38C30 46 26 42 30 34C34 26 42 30 38 42C34 54 28 50 30 46C34 42 42 46 38 58" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" fill="none"/>
+      </svg>
+
+      {/* Bolitas pequeñas decorativas */}
+      <div className="absolute top-[25%] left-[45%] h-3 w-3 rounded-full bg-yellow-300/30 animate-twinkle" />
+      <div className="absolute top-[75%] left-[30%] h-4 w-4 rounded-full bg-pink-300/25 animate-twinkle-delay" />
+      <div className="absolute top-[10%] left-[60%] h-2.5 w-2.5 rounded-full bg-emerald-300/30 animate-twinkle" />
+      <div className="absolute bottom-[5%] right-[25%] h-3.5 w-3.5 rounded-full bg-violet-300/25 animate-float-fast" />
     </div>
   );
 }
