@@ -78,27 +78,32 @@ function playChime(tipo: "llegada" | "retiro") {
     const now = ctx.currentTime;
 
     if (tipo === "llegada") {
-      // Acorde alegre ascendente
+      // Acorde alegre ascendente (suave, amigable)
       [523, 659, 784, 1047].forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sine"; osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.3, now + i * 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.5);
+        gain.gain.setValueAtTime(0.3, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.5);
         osc.connect(gain).connect(ctx.destination);
-        osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.5);
+        osc.start(now + i * 0.12); osc.stop(now + i * 0.12 + 0.5);
       });
     } else {
-      // Ding-dong (dos notas)
-      [880, 660].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine"; osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.35, now + i * 0.25);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.25 + 0.5);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + i * 0.25); osc.stop(now + i * 0.25 + 0.5);
-      });
+      // Triple beep urgente (papá esperando!) — se repite 2 veces
+      for (let rep = 0; rep < 2; rep++) {
+        const offset = rep * 0.5;
+        [880, 880, 1100].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.25, now + offset + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + offset + i * 0.12 + 0.1);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now + offset + i * 0.12);
+          osc.stop(now + offset + i * 0.12 + 0.1);
+        });
+      }
     }
   } catch { /* ignore */ }
 }
