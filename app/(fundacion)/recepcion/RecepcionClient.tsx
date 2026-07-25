@@ -165,6 +165,16 @@ export default function RecepcionClient() {
     return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
   }
 
+  function tiempoRespuesta(creado: string, confirmado: string) {
+    const diff = Math.round((new Date(confirmado).getTime() - new Date(creado).getTime()) / 1000);
+    if (diff < 60) return `${diff}s`;
+    const min = Math.floor(diff / 60);
+    const seg = diff % 60;
+    if (min < 60) return seg > 0 ? `${min}m ${seg}s` : `${min}m`;
+    const hrs = Math.floor(min / 60);
+    return `${hrs}h ${min % 60}m`;
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
       {/* Indicador de conexión */}
@@ -345,7 +355,7 @@ export default function RecepcionClient() {
                     {n.tipo === "llegada" ? "Lo dejaron • Tía va por él" : "Lo buscan • Tía lo trae"}
                     {n.confirmado_at && (
                       <span className="text-emerald-500 ml-1">
-                        • Listo {formatHora(n.confirmado_at)}
+                        • Listo en {tiempoRespuesta(n.created_at, n.confirmado_at)}
                       </span>
                     )}
                   </span>
