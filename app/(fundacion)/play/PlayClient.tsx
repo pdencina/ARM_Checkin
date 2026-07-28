@@ -204,6 +204,24 @@ export default function PlayClient() {
     }
   }
 
+  // Cargar notificaciones pendientes (sin confirmar) del día
+  useEffect(() => {
+    async function loadPendientes() {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("notificaciones")
+        .select("id, nombre, tipo, confirmado_at, created_at")
+        .is("confirmado_at", null)
+        .gte("created_at", hoy.toISOString())
+        .order("created_at", { ascending: true });
+      if (data && data.length > 0) {
+        setQueue(data as Notificacion[]);
+      }
+    }
+    loadPendientes();
+  }, []);
+
   // Suscripción a Realtime
   useEffect(() => {
     const channel = supabase
