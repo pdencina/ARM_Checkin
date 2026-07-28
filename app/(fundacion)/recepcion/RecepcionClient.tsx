@@ -180,6 +180,12 @@ export default function RecepcionClient() {
       setTimeout(() => setSent(false), 600);
       inputRef.current?.focus();
       setTimeout(() => setFeedback(null), 3000);
+      // Disparar push notification (fire & forget)
+      fetch("/api/push-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: trimmed, tipo }),
+      }).catch(() => {});
     } catch (e: any) {
       setFeedback({ msg: "Error: " + (e.message ?? "intenta nuevamente."), type: "err" });
     } finally {
@@ -213,6 +219,12 @@ export default function RecepcionClient() {
       setSent(true);
       setTimeout(() => setSent(false), 600);
       setTimeout(() => setFeedback(null), 3000);
+      // Disparar push notification (fire & forget)
+      fetch("/api/push-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nombreDirecto, tipo }),
+      }).catch(() => {});
     } catch (e: any) {
       setFeedback({ msg: "Error: " + (e.message ?? "intenta nuevamente."), type: "err" });
     } finally {

@@ -11,6 +11,18 @@ interface Notificacion {
   created_at: string;
 }
 
+// Helper para convertir VAPID key a Uint8Array
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 // ── Confetti explosivo ─────────────────────────────────────
 function launchConfetti(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext("2d")!;
@@ -125,6 +137,42 @@ export default function PlayClient() {
       osc.start(); osc.stop(ctx.currentTime + 0.05);
     });
     setAudioEnabled(true);
+    // Suscribir a push notifications
+    subscribeToPush();
+  }
+
+  // Registrar Service Worker y suscribir a Push
+  async function subscribeToPush() {
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // Pedir permiso
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
+
+      // Suscribir
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) return;
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+
+      // Guardar en Supabase
+      const subJson = subscription.toJSON();
+      await supabase.from("push_subscriptions").upsert({
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys?.p256dh ?? "",
+        auth: subJson.keys?.auth ?? "",
+      }, { onConflict: "endpoint" });
+
+    } catch (err) {
+      console.warn("Push subscription failed:", err);
+    }
   }
 
   // Suscripción a Realtime
