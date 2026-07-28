@@ -147,7 +147,28 @@ export default function PlayClient() {
     setAudioEnabled(true);
     // Suscribir a push notifications
     subscribeToPush();
+    // Activar Wake Lock (pantalla siempre encendida)
+    requestWakeLock();
   }
+
+  async function requestWakeLock() {
+    try {
+      if ("wakeLock" in navigator) {
+        await (navigator as any).wakeLock.request("screen");
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Re-adquirir Wake Lock si la pestaña vuelve a estar visible
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible" && audioEnabled) {
+        requestWakeLock();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [audioEnabled]);
 
   // Registrar Service Worker y suscribir a Push
   async function subscribeToPush() {
