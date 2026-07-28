@@ -125,7 +125,15 @@ export default function PlayClient() {
   const [queue, setQueue] = useState<Notificacion[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(true); // asumir instalada hasta verificar
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Detectar si está en modo standalone (PWA instalada)
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)").matches
+      || (navigator as any).standalone === true;
+    setIsStandalone(standalone);
+  }, []);
 
   function enableAudio() {
     const ctx = getAudioContext();
@@ -243,7 +251,7 @@ export default function PlayClient() {
       <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 text-center px-4">
         <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
 
-        <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
+        <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
           <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
           <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
         </div>
@@ -257,6 +265,20 @@ export default function PlayClient() {
             Cuando avisen de recepción va a sonar acá 🎉
           </p>
         </div>
+
+        {/* Banner instalar PWA */}
+        {!isStandalone && (
+          <div className="mt-6 rounded-2xl bg-white/70 backdrop-blur-lg px-5 py-4 shadow-md border border-white/50 text-left max-w-xs">
+            <p className="text-xs font-bold text-gray-700 mb-1">📲 Instalar en tu celu</p>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Para recibir notificaciones con pantalla bloqueada, agrega esta app a tu pantalla de inicio:
+              <br/><br/>
+              <span className="font-semibold text-gray-600">iPhone:</span> Toca <span className="inline-block px-1 bg-gray-100 rounded text-[10px]">⬆ Compartir</span> → <span className="inline-block px-1 bg-gray-100 rounded text-[10px]">Agregar a inicio</span>
+              <br/>
+              <span className="font-semibold text-gray-600">Android:</span> Menú <span className="inline-block px-1 bg-gray-100 rounded text-[10px]">⋮</span> → <span className="inline-block px-1 bg-gray-100 rounded text-[10px]">Instalar app</span>
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -269,7 +291,7 @@ export default function PlayClient() {
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
 
       {/* Indicador conexión */}
-      <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50 z-10">
+      <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
         <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
         <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Reconectando…"}</span>
       </div>

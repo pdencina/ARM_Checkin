@@ -27,8 +27,16 @@ export default function RecepcionClient() {
   const [tab, setTab] = useState<"historial" | "stats">("historial");
   const [ultimoEnviado, setUltimoEnviado] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "pendientes" | "confirmados" | "llegadas" | "retiros">("todos");
+  const [isStandalone, setIsStandalone] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const sugRef = useRef<HTMLDivElement>(null);
+
+  // Detectar si está en modo standalone (PWA instalada)
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)").matches
+      || (navigator as any).standalone === true;
+    setIsStandalone(standalone);
+  }, []);
 
   // Cargar nombres de niños para autocompletado
   useEffect(() => {
@@ -284,7 +292,7 @@ export default function RecepcionClient() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
       {/* Indicador de conexión */}
-      <div className="fixed top-4 right-4 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
+      <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
         <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
         <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Sin conexión"}</span>
       </div>
@@ -445,6 +453,18 @@ export default function RecepcionClient() {
             Abrir pantalla de Play →
           </a>
         </div>
+
+        {/* Banner instalar PWA */}
+        {!isStandalone && (
+          <div className="mt-4 rounded-2xl bg-purple-50/80 px-4 py-3 border border-purple-100 text-left">
+            <p className="text-[11px] font-bold text-purple-700 mb-1">📲 Tip: Instalar como app</p>
+            <p className="text-[10px] text-purple-500 leading-relaxed">
+              <span className="font-semibold">iPhone:</span> ⬆ Compartir → Agregar a inicio
+              <br/>
+              <span className="font-semibold">Android:</span> ⋮ Menú → Instalar app
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ═══ TABS + CONTENIDO ═══ */}
