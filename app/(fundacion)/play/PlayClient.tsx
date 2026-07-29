@@ -197,6 +197,7 @@ export default function PlayClient() {
         endpoint: subJson.endpoint,
         p256dh: subJson.keys?.p256dh ?? "",
         auth: subJson.keys?.auth ?? "",
+        updated_at: new Date().toISOString(),
       }, { onConflict: "endpoint" });
 
     } catch (err) {

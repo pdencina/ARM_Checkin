@@ -41,23 +41,15 @@ export default function RecepcionClient() {
   // Cargar nombres de niños para autocompletado
   useEffect(() => {
     async function loadNombres() {
-      // Traer de children (registrados en el sistema)
-      const { data: children } = await supabase
-        .from("children")
-        .select("nombre")
-        .eq("activo", true)
-        .order("nombre");
-
-      // Traer nombres únicos de notificaciones pasadas
-      const { data: histNombres } = await supabase
+      // Solo usar historial de notificaciones (no exponer tabla children a anon)
+      const { data } = await supabase
         .from("notificaciones")
         .select("nombre")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
 
       const set = new Set<string>();
-      (children ?? []).forEach((c: any) => { if (c.nombre) set.add(c.nombre); });
-      (histNombres ?? []).forEach((n: any) => { if (n.nombre) set.add(n.nombre); });
+      (data ?? []).forEach((n: any) => { if (n.nombre) set.add(n.nombre); });
 
       setNombres(Array.from(set).sort((a, b) => a.localeCompare(b, "es")));
     }

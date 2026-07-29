@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-const PIN_KEY = "fundacion-pin";
-const VALID_PIN = "1234";
+const PIN_KEY = "fundacion-pin-ok";
 
 function FloatingShapes() {
   return (
@@ -70,17 +69,28 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const stored = localStorage.getItem(PIN_KEY);
-    if (stored === VALID_PIN) setAuthed(true);
+    if (stored === "true") setAuthed(true);
     setMounted(true);
   }, []);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (pin === VALID_PIN) {
-      localStorage.setItem(PIN_KEY, pin);
-      setAuthed(true);
-      setError(false);
-    } else {
+    try {
+      const res = await fetch("/api/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        localStorage.setItem(PIN_KEY, "true");
+        setAuthed(true);
+        setError(false);
+      } else {
+        setError(true);
+        setPin("");
+      }
+    } catch {
       setError(true);
       setPin("");
     }
