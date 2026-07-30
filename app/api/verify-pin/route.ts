@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const { pin } = await request.json();
-    const validPin = process.env.PLAY_PIN || "1234";
+    const validPin = (process.env.PLAY_PIN || "1234").trim();
+    const inputPin = String(pin).trim();
 
-    if (pin === validPin) {
+    if (inputPin === validPin) {
       return NextResponse.json({ valid: true });
     }
 
