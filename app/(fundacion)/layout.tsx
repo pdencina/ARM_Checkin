@@ -75,11 +75,12 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const pinToSend = pin.trim();
     try {
       const res = await fetch("/api/verify-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify({ pin: pinToSend }),
       });
       const data = await res.json();
       if (data.valid) {
@@ -115,11 +116,11 @@ export default function FundacionLayout({ children }: { children: React.ReactNod
           </div>
 
           <input
-            type="password"
+            type="tel"
             inputMode="numeric"
             maxLength={6}
             value={pin}
-            onChange={(e) => { setPin(e.target.value); setError(false); }}
+            onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setError(false); }}
             placeholder="• • • •"
             autoFocus
             className={`w-full rounded-2xl border-2 px-4 py-4 text-center text-2xl tracking-[0.3em]
