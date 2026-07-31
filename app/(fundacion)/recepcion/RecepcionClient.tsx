@@ -4,6 +4,39 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SedeSelector, { useSede } from "../SedeSelector";
 
+// Sonido para recepción cuando la tía confirma (ding dulce)
+function playConfirmSound() {
+  try {
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+
+    [784, 988, 1175].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.2, now + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.15);
+      osc.stop(now + i * 0.15 + 0.5);
+
+      // Armónico suave
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.value = freq * 2;
+      gain2.gain.setValueAtTime(0.05, now + i * 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.3);
+      osc2.connect(gain2).connect(ctx.destination);
+      osc2.start(now + i * 0.15);
+      osc2.stop(now + i * 0.15 + 0.3);
+    });
+
+    setTimeout(() => ctx.close(), 1500);
+  } catch { /* ignore */ }
+}
+
 interface Notificacion {
   id: string;
   nombre: string;
@@ -200,6 +233,7 @@ export default function RecepcionClient() {
           );
           // Mostrar popup de confirmación
           if (updated.confirmado_at) {
+            playConfirmSound();
             setPopup({ nombre: updated.nombre, tipo: updated.tipo, tia: updated.confirmado_por });
             setTimeout(() => setPopup(null), 4000);
           }
