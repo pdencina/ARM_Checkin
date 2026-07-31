@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Notificacion {
@@ -8,6 +8,7 @@ interface Notificacion {
   nombre: string;
   tipo: "llegada" | "retiro";
   confirmado_at: string | null;
+  confirmado_por: string | null;
   created_at: string;
 }
 
@@ -28,7 +29,6 @@ function playChime(tipo: "llegada" | "retiro") {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
-
     if (tipo === "llegada") {
       [523, 659, 784, 1047].forEach((freq, i) => {
         const osc = ctx.createOscillator();
@@ -58,7 +58,7 @@ function playChime(tipo: "llegada" | "retiro") {
 
 export default function TVClient() {
   const supabase = createClient();
-  const [pendientes, setPendientes] = useState<Notificacion[]>([]);
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [connected, setConnected] = useState(false);
   const [clock, setClock] = useState("");
@@ -77,9 +77,7 @@ export default function TVClient() {
   useEffect(() => {
     async function lock() {
       try {
-        if ("wakeLock" in navigator) {
-          await (navigator as any).wakeLock.request("screen");
-        }
+        if ("wakeLock" in navigator) await (navigator as any).wakeLock.request("screen");
       } catch { /* ignore */ }
     }
     if (audioEnabled) lock();
@@ -90,23 +88,23 @@ export default function TVClient() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [audioEnabled]);
 
-  // Cargar pendientes del día
+  // Cargar notificaciones del día (pendientes + confirmadas recientes)
   useEffect(() => {
-    async function loadPendientes() {
+    async function load() {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("notificaciones")
-        .select("id, nombre, tipo, confirmado_at, created_at")
-        .is("confirmado_at", null)
+        .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
         .gte("created_at", hoy.toISOString())
-        .order("created_at", { ascending: true });
-      if (data) setPendientes(data as Notificacion[]);
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (data) setNotificaciones(data as Notificacion[]);
     }
-    loadPendientes();
+    load();
   }, []);
 
-  // Realtime: nuevas notificaciones + confirmaciones
+  // Realtime: INSERT y UPDATE
   useEffect(() => {
     const channel = supabase
       .channel("notificaciones-tv")
@@ -115,7 +113,7 @@ export default function TVClient() {
         { event: "INSERT", schema: "public", table: "notificaciones" },
         (payload) => {
           const nuevo = payload.new as Notificacion;
-          setPendientes((prev) => [...prev, nuevo]);
+          setNotificaciones((prev) => [nuevo, ...prev].slice(0, 20));
           if (audioEnabled) playChime(nuevo.tipo);
         }
       )
@@ -124,10 +122,9 @@ export default function TVClient() {
         { event: "UPDATE", schema: "public", table: "notificaciones" },
         (payload) => {
           const updated = payload.new as Notificacion;
-          if (updated.confirmado_at) {
-            // Quitar de pendientes cuando la tía confirma desde su celular
-            setPendientes((prev) => prev.filter((n) => n.id !== updated.id));
-          }
+          setNotificaciones((prev) =>
+            prev.map((n) => (n.id === updated.id ? { ...n, ...updated } : n))
+          );
         }
       )
       .subscribe((status) => {
@@ -137,7 +134,7 @@ export default function TVClient() {
     return () => { supabase.removeChannel(channel); };
   }, [audioEnabled]);
 
-  // Escuchar "insistir" desde recepción (broadcast efímero)
+  // Escuchar "insistir" desde recepción
   useEffect(() => {
     const channel = supabase
       .channel("play-insistir")
@@ -161,7 +158,11 @@ export default function TVClient() {
     setAudioEnabled(true);
   }
 
-  // ── Activar sonido ──────────────────────────────────────
+  // Separar pendientes y confirmados recientes
+  const pendientes = notificaciones.filter((n) => !n.confirmado_at);
+  const confirmados = notificaciones.filter((n) => n.confirmado_at).slice(0, 5);
+
+  // ── Activar pantalla ────────────────────────────────────
   if (!audioEnabled) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 text-center px-8">
@@ -170,10 +171,9 @@ export default function TVClient() {
             <p className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
             <p className="text-3xl leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
           </div>
-          <h1 className="text-3xl font-black text-gray-800 mb-3">Modo TV</h1>
+          <h1 className="text-3xl font-black text-gray-800 mb-3">Pantalla Play</h1>
           <p className="text-lg text-gray-400 mb-8">
-            Pantalla para la sala de Play. Muestra los avisos en grande.<br/>
-            La tía confirma desde su celular.
+            Pantalla para la sala. Los papás ven el nombre de su hijo.
           </p>
           <button
             onClick={enableAudio}
@@ -195,11 +195,11 @@ export default function TVClient() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/50">Fundación</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">Fundación</p>
           <p className="text-lg leading-tight"><span className="font-black text-white">arm</span> <span className="font-medium text-white/70">global</span></p>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-2xl font-bold text-white/80">{clock}</span>
+          <span className="text-3xl font-bold text-white/80">{clock}</span>
           <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5">
             <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
             <span className="text-xs font-semibold text-white/80">{connected ? "En vivo" : "..."}</span>
@@ -208,47 +208,78 @@ export default function TVClient() {
       </div>
 
       {/* Contenido principal */}
-      {pendientes.length === 0 ? (
-        /* Nada pendiente */
+      {pendientes.length === 0 && confirmados.length === 0 ? (
+        /* Nada — pantalla de espera */
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <span className="text-9xl block mb-6">🧸</span>
-          <h1 className="text-4xl font-black text-white/90">Todo tranqui</h1>
-          <p className="text-xl text-white/50 mt-2">Esperando avisos de recepción...</p>
+          <h1 className="text-4xl font-black text-white/90">Play & Group</h1>
+          <p className="text-xl text-white/50 mt-2">Bienvenidos 🌟</p>
         </div>
       ) : (
-        /* Lista de pendientes en grande */
-        <div className="flex-1 flex flex-col gap-4 justify-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-white/40 text-center mb-2">
-            {pendientes.length} {pendientes.length === 1 ? "niño pendiente" : "niños pendientes"}
-          </p>
-          <div className="grid grid-cols-1 gap-4 max-w-3xl mx-auto w-full">
-            {pendientes.map((n) => (
-              <div
-                key={n.id}
-                className={`rounded-3xl p-6 shadow-xl border flex items-center gap-5
-                  ${n.tipo === "llegada"
-                    ? "bg-white/95 border-purple-100"
-                    : "bg-white/95 border-orange-100"}`}
-              >
-                <span className="text-5xl">
-                  {n.tipo === "llegada" ? "🧸" : "👋"}
-                </span>
-                <div className="flex-1">
-                  <p className={`text-xs font-black uppercase tracking-wider mb-1
-                    ${n.tipo === "llegada" ? "text-purple-400" : "text-orange-400"}`}>
-                    {n.tipo === "llegada" ? "Dejaron en recepción" : "Vienen a buscarlo"}
-                  </p>
-                  <h2 className="text-4xl font-black text-gray-800">{n.nombre}</h2>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg text-gray-400 font-semibold">
-                    {new Date(n.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <p className="text-xs font-bold text-amber-500 mt-1 animate-pulse">Esperando tía...</p>
-                </div>
+        <div className="flex-1 flex flex-col gap-6">
+          {/* ═══ PENDIENTES (nombres grandes, los papás ven esto) ═══ */}
+          {pendientes.length > 0 && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-3">
+                🔔 En proceso
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                {pendientes.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`rounded-3xl p-6 shadow-xl flex items-center gap-5 animate-slide-up
+                      ${n.tipo === "llegada"
+                        ? "bg-white/95 border-2 border-purple-200"
+                        : "bg-white/95 border-2 border-orange-200"}`}
+                  >
+                    <span className="text-5xl shrink-0">
+                      {n.tipo === "llegada" ? "🧸" : "👋"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[11px] font-black uppercase tracking-wider mb-1
+                        ${n.tipo === "llegada" ? "text-purple-400" : "text-orange-400"}`}>
+                        {n.tipo === "llegada" ? "Bienvenido/a" : "Ya vamos por ti"}
+                      </p>
+                      <h2 className="text-4xl font-black text-gray-800 truncate">{n.nombre}</h2>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-lg text-gray-400 font-semibold">
+                        {new Date(n.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <p className="text-xs font-bold text-amber-500 mt-1 animate-pulse">
+                        {n.tipo === "llegada" ? "Tía va en camino" : "Lo llevan al hall"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* ═══ CONFIRMADOS RECIENTES (más chico, feedback positivo) ═══ */}
+          {confirmados.length > 0 && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
+                ✅ Listos
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {confirmados.map((n) => (
+                  <div
+                    key={n.id}
+                    className="rounded-2xl bg-emerald-50/90 border border-emerald-200/50 px-4 py-3 flex items-center gap-3"
+                  >
+                    <span className="text-lg">✅</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
+                      <span className="text-[10px] text-emerald-500 font-semibold">
+                        {n.confirmado_por || "Listo"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
