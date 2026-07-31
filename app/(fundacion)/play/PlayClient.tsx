@@ -125,7 +125,8 @@ export default function PlayClient() {
   const [queue, setQueue] = useState<Notificacion[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [connected, setConnected] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(true); // asumir instalada hasta verificar
+  const [isStandalone, setIsStandalone] = useState(true);
+  const [tia, setTia] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Detectar si está en modo standalone (PWA instalada)
@@ -133,6 +134,9 @@ export default function PlayClient() {
     const standalone = window.matchMedia("(display-mode: standalone)").matches
       || (navigator as any).standalone === true;
     setIsStandalone(standalone);
+    // Recuperar tía guardada
+    const savedTia = localStorage.getItem("play-tia");
+    if (savedTia) setTia(savedTia);
   }, []);
 
   function enableAudio() {
@@ -250,13 +254,49 @@ export default function PlayClient() {
     if (current) {
       await supabase
         .from("notificaciones")
-        .update({ confirmado_at: new Date().toISOString() })
+        .update({ confirmado_at: new Date().toISOString(), confirmado_por: tia })
         .eq("id", current.id);
     }
     setQueue((prev) => prev.slice(1));
-  }, [queue]);
+  }, [queue, tia]);
 
   const current = queue[0] ?? null;
+
+  // ── Elegir tía ──────────────────────────────────────────
+  if (!tia) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 text-center px-4">
+        <div className="rounded-[2rem] bg-white/90 backdrop-blur-xl p-10 shadow-2xl border border-white/60 max-w-sm w-full animate-slide-up">
+          <div className="mx-auto mb-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
+            <p className="text-lg leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
+          </div>
+          <h1 className="text-2xl font-black text-gray-800 mb-2">¿Quién eres?</h1>
+          <p className="text-sm text-gray-400 mb-6">Así sabemos quién confirma cada aviso</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => { setTia("Tía Cote"); localStorage.setItem("play-tia", "Tía Cote"); }}
+              className="rounded-2xl bg-gradient-to-br from-pink-100 to-purple-100 p-5 text-center
+                         transition-all hover:scale-[1.03] hover:shadow-lg active:scale-[0.97]
+                         border-2 border-transparent hover:border-purple-200"
+            >
+              <span className="text-4xl block mb-2">👩‍🦰</span>
+              <span className="text-sm font-black text-gray-700">Tía Cote</span>
+            </button>
+            <button
+              onClick={() => { setTia("Tía Cata"); localStorage.setItem("play-tia", "Tía Cata"); }}
+              className="rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 p-5 text-center
+                         transition-all hover:scale-[1.03] hover:shadow-lg active:scale-[0.97]
+                         border-2 border-transparent hover:border-orange-200"
+            >
+              <span className="text-4xl block mb-2">👩‍🦱</span>
+              <span className="text-sm font-black text-gray-700">Tía Cata</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Overlay activar sonido ──────────────────────────────
   if (!audioEnabled) {

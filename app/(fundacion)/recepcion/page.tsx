@@ -1,8 +1,6 @@
 import RecepcionClient from "./RecepcionClient";
 
-export const metadata = {
-  manifest: "/manifest-recepcion.json",
-};
+export const dynamic = "force-dynamic";
 
 export default function RecepcionPage() {
   return <RecepcionClient />;

@@ -1,8 +1,6 @@
 import TVClient from "./TVClient";
 
-export const metadata = {
-  manifest: "/manifest-play.json",
-};
+export const dynamic = "force-dynamic";
 
 export default function TVPage() {
   return <TVClient />;

@@ -8,6 +8,7 @@ interface Notificacion {
   nombre: string;
   tipo: "llegada" | "retiro";
   confirmado_at: string | null;
+  confirmado_por: string | null;
   created_at: string;
 }
 
@@ -19,7 +20,7 @@ export default function RecepcionClient() {
   const [feedback, setFeedback] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [connected, setConnected] = useState(false);
   const [sent, setSent] = useState(false);
-  const [popup, setPopup] = useState<{ nombre: string; tipo: "llegada" | "retiro" } | null>(null);
+  const [popup, setPopup] = useState<{ nombre: string; tipo: "llegada" | "retiro"; tia: string | null } | null>(null);
   const [nombres, setNombres] = useState<string[]>([]); // lista para autocompletado
   const [sugerencias, setSugerencias] = useState<string[]>([]);
   const [showSugerencias, setShowSugerencias] = useState(false);
@@ -122,7 +123,7 @@ export default function RecepcionClient() {
       hoy.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("notificaciones")
-        .select("id, nombre, tipo, confirmado_at, created_at")
+        .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
         .gte("created_at", hoy.toISOString())
         .order("created_at", { ascending: false });
       if (data) {
@@ -143,11 +144,11 @@ export default function RecepcionClient() {
         (payload) => {
           const updated = payload.new as Notificacion;
           setHistorial((prev) =>
-            prev.map((n) => (n.id === updated.id ? { ...n, confirmado_at: updated.confirmado_at } : n))
+            prev.map((n) => (n.id === updated.id ? { ...n, confirmado_at: updated.confirmado_at, confirmado_por: updated.confirmado_por } : n))
           );
           // Mostrar popup de confirmación
           if (updated.confirmado_at) {
-            setPopup({ nombre: updated.nombre, tipo: updated.tipo });
+            setPopup({ nombre: updated.nombre, tipo: updated.tipo, tia: updated.confirmado_por });
             setTimeout(() => setPopup(null), 4000);
           }
         }
@@ -168,7 +169,7 @@ export default function RecepcionClient() {
       const { data, error } = await supabase
         .from("notificaciones")
         .insert({ nombre: trimmed, tipo })
-        .select("id, nombre, tipo, confirmado_at, created_at")
+        .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
         .single();
       if (error) throw error;
       setHistorial((prev) => [data as Notificacion, ...prev]);
@@ -208,7 +209,7 @@ export default function RecepcionClient() {
       const { data, error } = await supabase
         .from("notificaciones")
         .insert({ nombre: nombreDirecto, tipo })
-        .select("id, nombre, tipo, confirmado_at, created_at")
+        .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
         .single();
       if (error) throw error;
       setHistorial((prev) => [data as Notificacion, ...prev]);
@@ -298,7 +299,7 @@ export default function RecepcionClient() {
               {popup.tipo === "llegada" ? "🙋‍♀️" : "🚶‍♀️"}
             </span>
             <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.15em] mb-2">
-              {popup.tipo === "llegada" ? "¡La tía va por él!" : "¡La tía lo lleva al hall!"}
+              {popup.tia ? `¡${popup.tia} va!` : popup.tipo === "llegada" ? "¡La tía va por él!" : "¡La tía lo lleva al hall!"}
             </p>
             <h2 className="text-4xl font-black text-gray-800 bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
               {popup.nombre}
@@ -539,7 +540,7 @@ export default function RecepcionClient() {
                       {n.tipo === "llegada" ? "Lo dejaron • Tía va por él" : "Lo buscan • Tía lo trae"}
                       {n.confirmado_at && (
                         <span className="text-emerald-500 ml-1">
-                          • Listo en {tiempoRespuesta(n.created_at, n.confirmado_at)}
+                          • {n.confirmado_por || "Confirmado"} en {tiempoRespuesta(n.created_at, n.confirmado_at)}
                         </span>
                       )}
                     </span>

@@ -1,8 +1,6 @@
 import PlayClient from "./PlayClient";
 
-export const metadata = {
-  manifest: "/manifest-play.json",
-};
+export const dynamic = "force-dynamic";
 
 export default function PlayPage() {
   return <PlayClient />;
