@@ -90,33 +90,58 @@ function playChime(tipo: "llegada" | "retiro") {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
 
+    // Helper: nota tipo xilófono/campanita (sine + armónico suave)
+    function playNote(freq: number, time: number, duration: number, volume: number) {
+      // Fundamental
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(volume, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(time);
+      osc.stop(time + duration);
+
+      // Armónico suave (octava arriba, más bajo) — da brillo
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.value = freq * 2;
+      gain2.gain.setValueAtTime(volume * 0.2, time);
+      gain2.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.6);
+      osc2.connect(gain2).connect(ctx.destination);
+      osc2.start(time);
+      osc2.stop(time + duration);
+
+      // Tercer armónico sutil (da calidez)
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = "sine";
+      osc3.frequency.value = freq * 3;
+      gain3.gain.setValueAtTime(volume * 0.05, time);
+      gain3.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.3);
+      osc3.connect(gain3).connect(ctx.destination);
+      osc3.start(time);
+      osc3.stop(time + duration);
+    }
+
     if (tipo === "llegada") {
-      // Acorde alegre ascendente (suave, amigable)
-      [523, 659, 784, 1047].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine"; osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.3, now + i * 0.12);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.5);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + i * 0.12); osc.stop(now + i * 0.12 + 0.5);
+      // Melodía dulce ascendente tipo xilófono (Do-Mi-Sol-Do alto)
+      const notes = [523, 659, 784, 1047];
+      notes.forEach((freq, i) => {
+        playNote(freq, now + i * 0.18, 0.8, 0.25);
       });
     } else {
-      // Triple beep urgente (papá esperando!) — se repite 2 veces
-      for (let rep = 0; rep < 2; rep++) {
-        const offset = rep * 0.5;
-        [880, 880, 1100].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = "square";
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.25, now + offset + i * 0.12);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + offset + i * 0.12 + 0.1);
-          osc.connect(gain).connect(ctx.destination);
-          osc.start(now + offset + i * 0.12);
-          osc.stop(now + offset + i * 0.12 + 0.1);
-        });
-      }
+      // Retiro: ding-dong cálido que se repite (campanitas descendentes)
+      const notes = [880, 659, 784, 659];
+      notes.forEach((freq, i) => {
+        playNote(freq, now + i * 0.2, 0.6, 0.2);
+      });
+      // Segunda ronda más suave
+      notes.forEach((freq, i) => {
+        playNote(freq, now + 1.0 + i * 0.2, 0.5, 0.12);
+      });
     }
   } catch { /* ignore */ }
 }
