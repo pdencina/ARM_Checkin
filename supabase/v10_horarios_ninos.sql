@@ -36,4 +36,5 @@ insert into horarios_ninos (nombre, hora_llegada, hora_salida, jornada, notas) v
   ('Grace',    '08:30', '16:00', 'completa', 'Llega entre 8:30-9:00, sale 16:00'),
   ('Isabella', '09:00', '13:00', 'am',       'Jornada AM fija, sale siempre a las 13:00'),
   ('Isaac',    '09:30', '17:30', 'completa', 'Llega entre 9:30-10:00, sale 17:30-18:00'),
-  ('Amparo',   '09:30', '18:00', 'completa', 'Ingreso variable después de 9:30, retiro casi siempre 18:00');
+  ('Amparo',   '09:30', '18:00', 'completa', 'Ingreso variable después de 9:30, retiro casi siempre 18:00'),
+  ('Sophia',   '08:00', '17:00', 'completa', 'Llega entre 8:00-8:30, sale 17:00-17:45');
