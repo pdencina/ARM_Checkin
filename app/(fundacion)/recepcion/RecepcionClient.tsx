@@ -39,6 +39,7 @@ export default function RecepcionClient() {
   const [filtro, setFiltro] = useState<"todos" | "pendientes" | "confirmados" | "llegadas" | "retiros">("todos");
   const [isStandalone, setIsStandalone] = useState(true);
   const [horarios, setHorarios] = useState<HorarioNino[]>([]);
+  const [ausentes, setAusentes] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const sugRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +60,14 @@ export default function RecepcionClient() {
         .eq("activo", true)
         .order("hora_llegada");
       if (horariosData) setHorarios(horariosData as HorarioNino[]);
+
+      // Cargar ausencias de hoy
+      const hoyStr = new Date().toISOString().split("T")[0];
+      const { data: ausenciasData } = await supabase
+        .from("ausencias")
+        .select("nombre")
+        .eq("fecha", hoyStr);
+      if (ausenciasData) setAusentes(new Set(ausenciasData.map((a: any) => a.nombre.toLowerCase())));
 
       // Cargar nombres del historial + horarios para autocompletado
       const { data: histNombres } = await supabase
@@ -239,6 +248,21 @@ export default function RecepcionClient() {
     }
   }
 
+  // Marcar/desmarcar ausente
+  async function toggleAusente(nombreNino: string) {
+    const key = nombreNino.toLowerCase();
+    const hoyStr = new Date().toISOString().split("T")[0];
+    if (ausentes.has(key)) {
+      // Desmarcar
+      await supabase.from("ausencias").delete().eq("nombre", nombreNino).eq("fecha", hoyStr);
+      setAusentes((prev) => { const next = new Set(prev); next.delete(key); return next; });
+    } else {
+      // Marcar ausente
+      await supabase.from("ausencias").upsert({ nombre: nombreNino, fecha: hoyStr }, { onConflict: "nombre,fecha" });
+      setAusentes((prev) => new Set(prev).add(key));
+    }
+  }
+
   // Insistir: re-notificar a Play sin crear registro nuevo
   async function insistir(n: Notificacion) {
     // Usar Realtime Broadcast (canal efímero, no toca la BD)
@@ -347,8 +371,9 @@ export default function RecepcionClient() {
     const registroLlegada = historial.find((n) => n.nombre.toLowerCase() === h.nombre.toLowerCase() && n.tipo === "llegada");
     const registroRetiro = historial.find((n) => n.nombre.toLowerCase() === h.nombre.toLowerCase() && n.tipo === "retiro");
 
-    let estado: "esperado" | "aqui" | "retirado" | "retrasado" = "esperado";
-    if (registroRetiro) estado = "retirado";
+    let estado: "esperado" | "aqui" | "retirado" | "retrasado" | "ausente" = "esperado";
+    if (ausentes.has(h.nombre.toLowerCase())) estado = "ausente";
+    else if (registroRetiro) estado = "retirado";
     else if (registroLlegada) estado = "aqui";
     else if (horaActualMin > llegadaMin + 30) estado = "retrasado";
 
@@ -402,28 +427,54 @@ export default function RecepcionClient() {
             {ninosHoy.map((n) => (
               <div
                 key={n.id}
-                className={`rounded-xl px-3 py-2 text-left transition-all cursor-pointer
+                className={`rounded-xl px-3 py-2 text-left transition-all
                   ${n.estado === "aqui" ? "bg-emerald-50 border border-emerald-200" :
                     n.estado === "retirado" ? "bg-gray-50 border border-gray-200 opacity-50" :
                     n.estado === "retrasado" ? "bg-red-50 border border-red-200" :
+                    n.estado === "ausente" ? "bg-gray-50 border border-gray-200 opacity-40" :
                     "bg-white/80 border border-gray-100"}`}
-                onClick={() => { setNombre(n.nombre); inputRef.current?.focus(); }}
               >
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs">
                     {n.estado === "aqui" ? "✅" :
                      n.estado === "retirado" ? "👋" :
-                     n.estado === "retrasado" ? "⚠️" : "🕐"}
+                     n.estado === "retrasado" ? "⚠️" :
+                     n.estado === "ausente" ? "😴" : "🕐"}
                   </span>
-                  <span className="text-xs font-bold text-gray-700 truncate">{n.nombre}</span>
+                  <span className={`text-xs font-bold text-gray-700 truncate flex-1 ${n.estado === "ausente" ? "line-through opacity-60" : ""}`}>
+                    {n.nombre}
+                  </span>
+                  {/* Botón ausente / enviar */}
+                  {n.estado !== "aqui" && n.estado !== "retirado" && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleAusente(n.nombre); }}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full transition-all
+                        ${n.estado === "ausente"
+                          ? "text-gray-500 bg-gray-200 hover:bg-gray-300"
+                          : "text-gray-400 bg-gray-100 hover:bg-red-100 hover:text-red-500"}`}
+                      title={n.estado === "ausente" ? "Desmarcar ausente" : "Marcar ausente"}
+                    >
+                      {n.estado === "ausente" ? "Vuelve" : "No viene"}
+                    </button>
+                  )}
                 </div>
                 <span className="text-[9px] text-gray-400 block mt-0.5">
                   {n.estado === "aqui" ? "Está aquí" :
                    n.estado === "retirado" ? "Ya se fue" :
+                   n.estado === "ausente" ? "No viene hoy" :
                    n.estado === "retrasado" ? `Esperado ${n.hora_llegada}` :
                    `Llega ~${n.hora_llegada}`}
                   {n.hora_salida && n.estado === "aqui" ? ` • Sale ~${n.hora_salida}` : ""}
                 </span>
+                {/* Click para autocompletar (solo si no es ausente) */}
+                {n.estado !== "ausente" && n.estado !== "retirado" && (
+                  <button
+                    onClick={() => { setNombre(n.nombre); inputRef.current?.focus(); }}
+                    className="text-[9px] text-purple-400 font-semibold mt-0.5 hover:text-purple-600"
+                  >
+                    → Enviar
+                  </button>
+                )}
               </div>
             ))}
           </div>
