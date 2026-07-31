@@ -12,6 +12,15 @@ interface Notificacion {
   created_at: string;
 }
 
+interface HorarioNino {
+  id: string;
+  nombre: string;
+  hora_llegada: string;
+  hora_salida: string | null;
+  jornada: string;
+  notas: string | null;
+}
+
 export default function RecepcionClient() {
   const supabase = createClient();
   const [nombre, setNombre] = useState("");
@@ -21,7 +30,7 @@ export default function RecepcionClient() {
   const [connected, setConnected] = useState(false);
   const [sent, setSent] = useState(false);
   const [popup, setPopup] = useState<{ nombre: string; tipo: "llegada" | "retiro"; tia: string | null } | null>(null);
-  const [nombres, setNombres] = useState<string[]>([]); // lista para autocompletado
+  const [nombres, setNombres] = useState<string[]>([]);
   const [sugerencias, setSugerencias] = useState<string[]>([]);
   const [showSugerencias, setShowSugerencias] = useState(false);
   const [semana, setSemana] = useState<{ dia: string; total: number }[]>([]);
@@ -29,6 +38,7 @@ export default function RecepcionClient() {
   const [ultimoEnviado, setUltimoEnviado] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "pendientes" | "confirmados" | "llegadas" | "retiros">("todos");
   const [isStandalone, setIsStandalone] = useState(true);
+  const [horarios, setHorarios] = useState<HorarioNino[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const sugRef = useRef<HTMLDivElement>(null);
 
@@ -39,22 +49,31 @@ export default function RecepcionClient() {
     setIsStandalone(standalone);
   }, []);
 
-  // Cargar nombres de niños para autocompletado
+  // Cargar nombres + horarios para autocompletado inteligente
   useEffect(() => {
-    async function loadNombres() {
-      // Solo usar historial de notificaciones (no exponer tabla children a anon)
-      const { data } = await supabase
+    async function loadData() {
+      // Cargar horarios de niños
+      const { data: horariosData } = await supabase
+        .from("horarios_ninos")
+        .select("id, nombre, hora_llegada, hora_salida, jornada, notas")
+        .eq("activo", true)
+        .order("hora_llegada");
+      if (horariosData) setHorarios(horariosData as HorarioNino[]);
+
+      // Cargar nombres del historial + horarios para autocompletado
+      const { data: histNombres } = await supabase
         .from("notificaciones")
         .select("nombre")
         .order("created_at", { ascending: false })
         .limit(500);
 
       const set = new Set<string>();
-      (data ?? []).forEach((n: any) => { if (n.nombre) set.add(n.nombre); });
+      (horariosData ?? []).forEach((h: any) => { if (h.nombre) set.add(h.nombre); });
+      (histNombres ?? []).forEach((n: any) => { if (n.nombre) set.add(n.nombre); });
 
-      setNombres(Array.from(set).sort((a, b) => a.localeCompare(b, "es")));
+      setNombres(Array.from(set));
     }
-    loadNombres();
+    loadData();
   }, []);
 
   // Cargar datos semanales para estadísticas
@@ -85,7 +104,7 @@ export default function RecepcionClient() {
     loadSemana();
   }, []);
 
-  // Filtrar sugerencias al escribir
+  // Filtrar sugerencias al escribir (ordenadas por proximidad horaria)
   useEffect(() => {
     const q = nombre.trim().toLowerCase();
     if (q.length < 2) {
@@ -93,10 +112,29 @@ export default function RecepcionClient() {
       setShowSugerencias(false);
       return;
     }
-    const filtered = nombres.filter((n) => n.toLowerCase().includes(q)).slice(0, 5);
-    setSugerencias(filtered);
-    setShowSugerencias(filtered.length > 0);
-  }, [nombre, nombres]);
+    const ahora = new Date();
+    const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+
+    // Filtrar nombres que coinciden
+    const filtered = nombres.filter((n) => n.toLowerCase().includes(q));
+
+    // Ordenar: los que tienen horario cercano a la hora actual primero
+    const sorted = filtered.sort((a, b) => {
+      const hA = horarios.find((h) => h.nombre.toLowerCase() === a.toLowerCase());
+      const hB = horarios.find((h) => h.nombre.toLowerCase() === b.toLowerCase());
+      if (!hA && !hB) return a.localeCompare(b, "es");
+      if (!hA) return 1;
+      if (!hB) return -1;
+      const [hAh, hAm] = hA.hora_llegada.split(":").map(Number);
+      const [hBh, hBm] = hB.hora_llegada.split(":").map(Number);
+      const diffA = Math.abs(horaActual - (hAh * 60 + hAm));
+      const diffB = Math.abs(horaActual - (hBh * 60 + hBm));
+      return diffA - diffB;
+    });
+
+    setSugerencias(sorted.slice(0, 5));
+    setShowSugerencias(sorted.length > 0);
+  }, [nombre, nombres, horarios]);
 
   // Cerrar sugerencias al hacer click fuera
   useEffect(() => {
@@ -273,6 +311,29 @@ export default function RecepcionClient() {
 
   const semanaMax = Math.max(...semana.map((d) => d.total), 1);
 
+  // Quién viene hoy: estado de cada niño
+  const ahora = new Date();
+  const horaActualMin = ahora.getHours() * 60 + ahora.getMinutes();
+  const diasSemana = ["dom", "lun", "mar", "mie", "jue", "vie", "sab"];
+  const diaHoy = diasSemana[ahora.getDay()];
+
+  const ninosHoy = horarios.map((h) => {
+    const [hh, hm] = h.hora_llegada.split(":").map(Number);
+    const llegadaMin = hh * 60 + hm;
+    const salidaMin = h.hora_salida ? (() => { const [sh, sm] = h.hora_salida!.split(":").map(Number); return sh * 60 + sm; })() : null;
+
+    // Verificar si ya fue registrado hoy
+    const registroLlegada = historial.find((n) => n.nombre.toLowerCase() === h.nombre.toLowerCase() && n.tipo === "llegada");
+    const registroRetiro = historial.find((n) => n.nombre.toLowerCase() === h.nombre.toLowerCase() && n.tipo === "retiro");
+
+    let estado: "esperado" | "aqui" | "retirado" | "retrasado" = "esperado";
+    if (registroRetiro) estado = "retirado";
+    else if (registroLlegada) estado = "aqui";
+    else if (horaActualMin > llegadaMin + 30) estado = "retrasado";
+
+    return { ...h, llegadaMin, salidaMin, estado, registroLlegada, registroRetiro };
+  });
+
   // Historial filtrado
   const historialFiltrado = historial.filter((n) => {
     if (filtro === "pendientes") return !n.confirmado_at;
@@ -306,6 +367,44 @@ export default function RecepcionClient() {
             </h2>
             <p className="text-sm text-gray-400 mt-3">Confirmado ✅</p>
             <p className="text-[10px] text-gray-300 mt-4">Toca para cerrar</p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ QUIÉN VIENE HOY ═══ */}
+      {horarios.length > 0 && (
+        <div className="w-full max-w-md mb-4 rounded-2xl bg-white/70 backdrop-blur-lg p-4 shadow-md border border-white/50">
+          <h2 className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-1.5">
+            📋 Hoy en Play
+          </h2>
+          <div className="grid grid-cols-2 gap-1.5">
+            {ninosHoy.map((n) => (
+              <div
+                key={n.id}
+                className={`rounded-xl px-3 py-2 text-left transition-all cursor-pointer
+                  ${n.estado === "aqui" ? "bg-emerald-50 border border-emerald-200" :
+                    n.estado === "retirado" ? "bg-gray-50 border border-gray-200 opacity-50" :
+                    n.estado === "retrasado" ? "bg-red-50 border border-red-200" :
+                    "bg-white/80 border border-gray-100"}`}
+                onClick={() => { setNombre(n.nombre); inputRef.current?.focus(); }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">
+                    {n.estado === "aqui" ? "✅" :
+                     n.estado === "retirado" ? "👋" :
+                     n.estado === "retrasado" ? "⚠️" : "🕐"}
+                  </span>
+                  <span className="text-xs font-bold text-gray-700 truncate">{n.nombre}</span>
+                </div>
+                <span className="text-[9px] text-gray-400 block mt-0.5">
+                  {n.estado === "aqui" ? "Está aquí" :
+                   n.estado === "retirado" ? "Ya se fue" :
+                   n.estado === "retrasado" ? `Esperado ${n.hora_llegada}` :
+                   `Llega ~${n.hora_llegada}`}
+                  {n.hora_salida && n.estado === "aqui" ? ` • Sale ~${n.hora_salida}` : ""}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
