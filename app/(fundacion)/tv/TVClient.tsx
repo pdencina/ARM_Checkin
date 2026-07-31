@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import SedeSelector, { useSede } from "../SedeSelector";
 
 interface Notificacion {
   id: string;
@@ -58,6 +59,7 @@ function playChime(tipo: "llegada" | "retiro") {
 
 export default function TVClient() {
   const supabase = createClient();
+  const { sede, sedeNombre, selectSede } = useSede();
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -96,6 +98,7 @@ export default function TVClient() {
       const { data } = await supabase
         .from("notificaciones")
         .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
+        .eq("sede", sede || "puente-alto")
         .gte("created_at", hoy.toISOString())
         .order("created_at", { ascending: false })
         .limit(20);
@@ -161,6 +164,11 @@ export default function TVClient() {
   // Separar pendientes y confirmados recientes
   const pendientes = notificaciones.filter((n) => !n.confirmado_at);
   const confirmados = notificaciones.filter((n) => n.confirmado_at).slice(0, 5);
+
+  // ── Elegir sede ──────────────────────────────────────────
+  if (!sede) {
+    return <SedeSelector onSelect={selectSede} />;
+  }
 
   // ── Activar pantalla ────────────────────────────────────
   if (!audioEnabled) {

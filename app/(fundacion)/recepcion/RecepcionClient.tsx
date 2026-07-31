@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import SedeSelector, { useSede } from "../SedeSelector";
 
 interface Notificacion {
   id: string;
@@ -23,6 +24,7 @@ interface HorarioNino {
 
 export default function RecepcionClient() {
   const supabase = createClient();
+  const { sede, sedeNombre, selectSede, clearSede } = useSede();
   const [nombre, setNombre] = useState("");
   const [historial, setHistorial] = useState<Notificacion[]>([]);
   const [busy, setBusy] = useState(false);
@@ -58,6 +60,7 @@ export default function RecepcionClient() {
         .from("horarios_ninos")
         .select("id, nombre, hora_llegada, hora_salida, jornada, notas")
         .eq("activo", true)
+        .eq("sede", sede)
         .order("hora_llegada");
       if (horariosData) setHorarios(horariosData as HorarioNino[]);
 
@@ -66,7 +69,8 @@ export default function RecepcionClient() {
       const { data: ausenciasData } = await supabase
         .from("ausencias")
         .select("nombre")
-        .eq("fecha", hoyStr);
+        .eq("fecha", hoyStr)
+        .eq("sede", sede);
       if (ausenciasData) setAusentes(new Set(ausenciasData.map((a: any) => a.nombre.toLowerCase())));
 
       // Cargar nombres del historial + horarios para autocompletado
@@ -171,6 +175,7 @@ export default function RecepcionClient() {
       const { data } = await supabase
         .from("notificaciones")
         .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
+        .eq("sede", sede)
         .gte("created_at", hoy.toISOString())
         .order("created_at", { ascending: false });
       if (data) {
@@ -215,7 +220,7 @@ export default function RecepcionClient() {
     try {
       const { data, error } = await supabase
         .from("notificaciones")
-        .insert({ nombre: trimmed, tipo })
+        .insert({ nombre: trimmed, tipo, sede })
         .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
         .single();
       if (error) throw error;
@@ -253,12 +258,10 @@ export default function RecepcionClient() {
     const key = nombreNino.toLowerCase();
     const hoyStr = new Date().toISOString().split("T")[0];
     if (ausentes.has(key)) {
-      // Desmarcar
-      await supabase.from("ausencias").delete().eq("nombre", nombreNino).eq("fecha", hoyStr);
+      await supabase.from("ausencias").delete().eq("nombre", nombreNino).eq("fecha", hoyStr).eq("sede", sede);
       setAusentes((prev) => { const next = new Set(prev); next.delete(key); return next; });
     } else {
-      // Marcar ausente
-      await supabase.from("ausencias").upsert({ nombre: nombreNino, fecha: hoyStr }, { onConflict: "nombre,fecha" });
+      await supabase.from("ausencias").upsert({ nombre: nombreNino, fecha: hoyStr, sede }, { onConflict: "nombre,fecha" });
       setAusentes((prev) => new Set(prev).add(key));
     }
   }
@@ -291,7 +294,7 @@ export default function RecepcionClient() {
     try {
       const { data, error } = await supabase
         .from("notificaciones")
-        .insert({ nombre: nombreDirecto, tipo })
+        .insert({ nombre: nombreDirecto, tipo, sede })
         .select("id, nombre, tipo, confirmado_at, confirmado_por, created_at")
         .single();
       if (error) throw error;
@@ -389,12 +392,26 @@ export default function RecepcionClient() {
     return true;
   });
 
+  // Si no hay sede seleccionada, mostrar selector
+  if (!sede) {
+    return <SedeSelector onSelect={selectSede} />;
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
-      {/* Indicador de conexión */}
+      {/* Indicador de conexión + sede */}
       <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50">
         <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
         <span className="text-xs font-semibold text-gray-600">{connected ? "Conectado" : "Sin conexión"}</span>
+      </div>
+      <div className="fixed top-4 left-4 z-30">
+        <button
+          onClick={clearSede}
+          className="flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur-lg px-3 py-1.5 shadow-lg border border-white/50
+                     text-xs font-semibold text-gray-600 hover:bg-white transition-all"
+        >
+          📍 {sedeNombre}
+        </button>
       </div>
 
       {/* ═══ POP-UP CONFIRMACIÓN DE LA TÍA ═══ */}

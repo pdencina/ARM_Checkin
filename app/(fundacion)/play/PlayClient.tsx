@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import SedeSelector, { useSede } from "../SedeSelector";
 
 interface Notificacion {
   id: string;
@@ -122,6 +123,7 @@ function playChime(tipo: "llegada" | "retiro") {
 
 export default function PlayClient() {
   const supabase = createClient();
+  const { sede, sedeNombre, selectSede } = useSede();
   const [queue, setQueue] = useState<Notificacion[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -218,6 +220,7 @@ export default function PlayClient() {
         .from("notificaciones")
         .select("id, nombre, tipo, confirmado_at, created_at")
         .is("confirmado_at", null)
+        .eq("sede", sede || "puente-alto")
         .gte("created_at", hoy.toISOString())
         .order("created_at", { ascending: true });
       if (data && data.length > 0) {
@@ -281,6 +284,11 @@ export default function PlayClient() {
   }, [queue, tia]);
 
   const current = queue[0] ?? null;
+
+  // ── Elegir sede ─────────────────────────────────────────
+  if (!sede) {
+    return <SedeSelector onSelect={selectSede} />;
+  }
 
   // ── Elegir tía ──────────────────────────────────────────
   if (!tia) {
