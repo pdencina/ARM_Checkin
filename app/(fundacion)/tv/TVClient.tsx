@@ -188,8 +188,7 @@ export default function TVClient() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 text-center px-8">
         <div className="rounded-[2rem] bg-white/90 backdrop-blur-xl p-12 shadow-2xl border border-white/60 max-w-lg w-full">
           <div className="mx-auto mb-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
-            <p className="text-3xl leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
+            <img src="/leon_logo_512.png" alt="Play & Group" className="w-20 h-20 mx-auto animate-float-slow" />
           </div>
           <h1 className="text-3xl font-black text-gray-800 mb-3">Pantalla Play</h1>
           <p className="text-lg text-gray-400 mb-8">
@@ -214,9 +213,12 @@ export default function TVClient() {
     <div className="flex min-h-screen flex-col px-8 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">Fundación</p>
-          <p className="text-lg leading-tight"><span className="font-black text-white">arm</span> <span className="font-medium text-white/70">global</span></p>
+        <div className="flex items-center gap-3">
+          <img src="/leon_logo_512.png" alt="Play & Group" className="w-10 h-10" />
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">Fundación</p>
+            <p className="text-lg leading-tight"><span className="font-black text-white">arm</span> <span className="font-medium text-white/70">global</span></p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-3xl font-bold text-white/80">{clock}</span>
@@ -231,7 +233,7 @@ export default function TVClient() {
       {pendientes.length === 0 && confirmados.length === 0 ? (
         /* Nada — pantalla de espera */
         <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <span className="text-9xl block mb-6">🧸</span>
+          <img src="/leon_logo_512.png" alt="Play & Group" className="w-32 h-32 mx-auto mb-6 animate-float-slow" />
           <h1 className="text-4xl font-black text-white/90">Play & Group</h1>
           <p className="text-xl text-white/50 mt-2">Bienvenidos 🌟</p>
         </div>

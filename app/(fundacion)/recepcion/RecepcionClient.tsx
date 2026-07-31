@@ -538,8 +538,7 @@ export default function RecepcionClient() {
         {/* Header */}
         <div className="mb-7 text-center">
           <div className="mx-auto mb-3 animate-float-slow">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
-            <p className="text-lg leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
+            <img src="/leon_logo_512.png" alt="Play & Group" className="w-14 h-14 mx-auto" />
           </div>
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">Recepción</h1>
           <p className="text-sm text-gray-400 mt-1">Avísale a las tías que hay movimiento 💜</p>

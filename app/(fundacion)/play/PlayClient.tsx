@@ -357,8 +357,7 @@ export default function PlayClient() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 text-center px-4">
         <div className="rounded-[2rem] bg-white/90 backdrop-blur-xl p-10 shadow-2xl border border-white/60 max-w-sm w-full animate-slide-up">
           <div className="mx-auto mb-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
-            <p className="text-lg leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
+            <img src="/leon_logo_512.png" alt="Play & Group" className="w-16 h-16 mx-auto animate-float-slow" />
           </div>
           <h1 className="text-2xl font-black text-gray-800 mb-2">Pantalla Play</h1>
           <p className="text-sm text-gray-400 mb-6 leading-relaxed">
@@ -391,7 +390,7 @@ export default function PlayClient() {
 
         <div className="rounded-[2rem] bg-white/80 backdrop-blur-xl p-14 shadow-xl border border-white/50">
           <div className="animate-float-med mx-auto mb-5">
-            <span className="text-8xl block">🧸</span>
+            <img src="/leon_logo_512.png" alt="Play & Group" className="w-24 h-24 mx-auto" />
           </div>
           <h1 className="text-2xl font-black text-gray-700">Todo tranqui por acá…</h1>
           <p className="text-sm text-gray-400 mt-2 leading-relaxed">

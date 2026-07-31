@@ -38,7 +38,8 @@ export default function SedeSelector({ onSelect }: { onSelect: (id: string) => v
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 text-center px-4">
       <div className="rounded-[2rem] bg-white/90 backdrop-blur-xl p-8 shadow-2xl border border-white/60 max-w-sm w-full">
         <div className="mx-auto mb-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">Fundación</p>
+          <img src="/leon_logo_512.png" alt="Play & Group" className="w-16 h-16 mx-auto animate-float-slow" />
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500 mt-2">Fundación</p>
           <p className="text-lg leading-tight"><span className="font-black text-gray-800">arm</span> <span className="font-medium text-gray-600">global</span></p>
         </div>
         <h1 className="text-xl font-black text-gray-800 mb-2">¿En qué sede estás?</h1>
