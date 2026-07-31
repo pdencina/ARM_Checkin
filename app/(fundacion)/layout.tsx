@@ -1,9 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-const PIN_KEY = "fundacion-pin-ok";
-
 function FloatingShapes() {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -62,91 +58,6 @@ function FloatingShapes() {
 }
 
 export default function FundacionLayout({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState(false);
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(PIN_KEY);
-    if (stored === "true") setAuthed(true);
-    setMounted(true);
-  }, []);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const pinToSend = pin.trim();
-    try {
-      const res = await fetch("/api/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: pinToSend }),
-      });
-      const data = await res.json();
-      if (data.valid) {
-        localStorage.setItem(PIN_KEY, "true");
-        setAuthed(true);
-        setError(false);
-      } else {
-        setError(true);
-        setPin("");
-      }
-    } catch {
-      setError(true);
-      setPin("");
-    }
-  }
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-400" />;
-  }
-
-  if (!authed) {
-    return (
-      <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-400 px-4">
-        <FloatingShapes />
-        <form onSubmit={submit} className="relative z-10 w-full max-w-sm rounded-[2rem] bg-white/95 backdrop-blur-xl p-8 shadow-2xl text-center">
-          <div className="mb-6">
-            <div className="mx-auto mb-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-800">Fundación</p>
-              <p className="text-xl leading-tight"><span className="font-black text-gray-900">arm</span> <span className="font-medium text-gray-700">global</span></p>
-            </div>
-            <h1 className="text-2xl font-black text-gray-800">Play & Group</h1>
-            <p className="text-sm text-gray-400 mt-1">Pon el PIN para entrar 🔑</p>
-          </div>
-
-          <input
-            type="tel"
-            inputMode="numeric"
-            maxLength={6}
-            value={pin}
-            onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setError(false); }}
-            placeholder="• • • •"
-            autoFocus
-            className={`w-full rounded-2xl border-2 px-4 py-4 text-center text-2xl tracking-[0.3em]
-                       font-mono transition-all focus:outline-none focus:ring-4 focus:ring-purple-200
-                       ${error ? "border-red-300 bg-red-50 animate-shake" : "border-gray-100 bg-gray-50/80"}`}
-          />
-
-          {error && (
-            <p className="mt-2 text-sm text-red-500 font-medium">Ese no es 😅 intenta de nuevo</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={pin.length < 4}
-            className="mt-5 w-full rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500
-                       px-4 py-4 text-base font-bold text-white shadow-lg shadow-purple-300/40
-                       transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
-                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            Entrar ✨
-          </button>
-        </form>
-      </div>
-    );
-  }
-
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-400">
       <FloatingShapes />
