@@ -423,7 +423,7 @@ export default function RecepcionClient() {
               {popup.tipo === "llegada" ? "🙋‍♀️" : "🚶‍♀️"}
             </span>
             <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.15em] mb-2">
-              {popup.tia ? `¡${popup.tia} va!` : popup.tipo === "llegada" ? "¡La tía va por él!" : "¡La tía lo lleva al hall!"}
+              {popup.tia ? `¡${popup.tia} va a recepción!` : popup.tipo === "llegada" ? "¡La tía va a recepción!" : "¡La tía lo lleva a recepción!"}
             </p>
             <h2 className="text-4xl font-black text-gray-800 bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
               {popup.nombre}
@@ -725,7 +725,7 @@ export default function RecepcionClient() {
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
                     <span className="text-[10px] font-semibold text-gray-400">
-                      {n.tipo === "llegada" ? "Lo dejaron • Tía va por él" : "Lo buscan • Tía lo trae"}
+                      {n.tipo === "llegada" ? "Lo dejaron • Tía va a recepción" : "Lo buscan • Tía lo trae a recepción"}
                       {n.confirmado_at && (
                         <span className="text-emerald-500 ml-1">
                           • {n.confirmado_por || "Confirmado"} en {tiempoRespuesta(n.created_at, n.confirmado_at)}

@@ -267,7 +267,7 @@ export default function TVClient() {
                         {new Date(n.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <p className="text-xs font-bold text-amber-500 mt-1 animate-pulse">
-                        {n.tipo === "llegada" ? "Tía va en camino" : "Lo llevan al hall"}
+                        {n.tipo === "llegada" ? "Tía va a recepción" : "Lo llevan a recepción"}
                       </p>
                     </div>
                   </div>

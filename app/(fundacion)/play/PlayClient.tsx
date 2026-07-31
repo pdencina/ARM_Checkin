@@ -461,8 +461,8 @@ export default function PlayClient() {
 
         <p className="text-sm text-gray-400 mt-3 font-medium">
           {isLlegada
-            ? "Anda a buscarlo a la entrada 🚶‍♀️"
-            : "Tráelo al hall que lo están esperando 🏠"}
+            ? "Ve a buscarlo a recepción 🚶‍♀️"
+            : "Llévalo a recepción, lo esperan 🤗"}
         </p>
 
         <p className="text-xs text-gray-300 mt-2">
@@ -481,7 +481,7 @@ export default function PlayClient() {
           {isLlegada ? (
             <><span className="text-2xl">🙋‍♀️</span> Ya voy!</>
           ) : (
-            <><span className="text-2xl">🚶‍♀️</span> Ya lo llevo!</>
+            <><span className="text-2xl">🚶‍♀️</span> Ya lo llevo a recepción!</>
           )}
         </button>
       </div>
