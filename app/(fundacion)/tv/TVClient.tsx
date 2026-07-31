@@ -137,6 +137,18 @@ export default function TVClient() {
     return () => { supabase.removeChannel(channel); };
   }, [audioEnabled]);
 
+  // Escuchar "insistir" desde recepción (broadcast efímero)
+  useEffect(() => {
+    const channel = supabase
+      .channel("play-insistir")
+      .on("broadcast", { event: "insistir" }, (payload: any) => {
+        if (audioEnabled) playChime(payload.payload.tipo);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [audioEnabled]);
+
   function enableAudio() {
     const ctx = getAudioContext();
     ctx.resume().then(() => {

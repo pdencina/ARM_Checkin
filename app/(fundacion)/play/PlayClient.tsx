@@ -248,6 +248,26 @@ export default function PlayClient() {
     return () => { supabase.removeChannel(channel); };
   }, [audioEnabled]);
 
+  // Escuchar "insistir" desde recepción (broadcast efímero)
+  useEffect(() => {
+    const channel = supabase
+      .channel("play-insistir")
+      .on("broadcast", { event: "insistir" }, (payload: any) => {
+        const { nombre, tipo } = payload.payload;
+        if (audioEnabled) playChime(tipo);
+        if (canvasRef.current) launchConfetti(canvasRef.current);
+        // Si no está ya en la cola, agregarlo temporalmente para que se muestre
+        setQueue((prev) => {
+          const yaExiste = prev.some((n) => n.nombre === nombre && !n.confirmado_at);
+          if (yaExiste) return prev; // ya está visible, solo sonó
+          return prev; // no agregar duplicado, solo sonar
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [audioEnabled]);
+
   // Confirmar notificación actual
   const confirmar = useCallback(async () => {
     const current = queue[0];

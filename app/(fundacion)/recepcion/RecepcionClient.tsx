@@ -239,6 +239,27 @@ export default function RecepcionClient() {
     }
   }
 
+  // Insistir: re-notificar a Play sin crear registro nuevo
+  async function insistir(n: Notificacion) {
+    // Usar Realtime Broadcast (canal efímero, no toca la BD)
+    const channel = supabase.channel("play-insistir");
+    await channel.subscribe();
+    await channel.send({
+      type: "broadcast",
+      event: "insistir",
+      payload: { id: n.id, nombre: n.nombre, tipo: n.tipo },
+    });
+    supabase.removeChannel(channel);
+    // También disparar push por si tiene el celu bloqueado
+    fetch("/api/push-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: n.nombre, tipo: n.tipo }),
+    }).catch(() => {});
+    setFeedback({ msg: `🔔 Insistido: ${n.nombre}`, type: "ok" });
+    setTimeout(() => setFeedback(null), 2000);
+  }
+
   // Enviar directo con nombre y tipo (para repetir último)
   async function enviarDirecto(nombreDirecto: string, tipo: "llegada" | "retiro") {
     setBusy(true);
@@ -645,14 +666,20 @@ export default function RecepcionClient() {
                     </span>
                   </div>
 
-                  {/* Hora + badge */}
+                  {/* Hora + badge/insistir */}
                   <div className="text-right shrink-0">
                     <span className="text-xs text-gray-400 font-semibold block">{formatHora(n.created_at)}</span>
                     {!n.confirmado_at && (
-                      <span className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full
-                        ${n.tipo === "llegada" ? "text-purple-500 bg-purple-50" : "text-orange-500 bg-orange-50"}`}>
-                        Esperando
-                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); insistir(n); }}
+                        className={`inline-block mt-0.5 text-[9px] font-bold px-2 py-1 rounded-full transition-all
+                          hover:scale-105 active:scale-95
+                          ${n.tipo === "llegada"
+                            ? "text-purple-600 bg-purple-100 hover:bg-purple-200"
+                            : "text-orange-600 bg-orange-100 hover:bg-orange-200"}`}
+                      >
+                        🔔 Insistir
+                      </button>
                     )}
                   </div>
                 </div>
