@@ -69,6 +69,10 @@ function playChime(tipo: "llegada" | "retiro") {
   } catch { /* ignore */ }
 }
 
+function formatHora(iso: string) {
+  return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function TVClient() {
   const supabase = createClient();
   const { sede, sedeNombre, selectSede } = useSede();
@@ -102,7 +106,7 @@ export default function TVClient() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [audioEnabled]);
 
-  // Cargar notificaciones del día (pendientes + confirmadas recientes)
+  // Cargar notificaciones del día
   useEffect(() => {
     async function load() {
       const hoy = new Date();
@@ -117,9 +121,9 @@ export default function TVClient() {
       if (data) setNotificaciones(data as Notificacion[]);
     }
     load();
-  }, []);
+  }, [sede]);
 
-  // Realtime: INSERT y UPDATE
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel("notificaciones-tv")
@@ -149,7 +153,7 @@ export default function TVClient() {
     return () => { supabase.removeChannel(channel); };
   }, [audioEnabled]);
 
-  // Escuchar "insistir" desde recepción
+  // Broadcast insistir
   useEffect(() => {
     const channel = supabase
       .channel("play-insistir")
@@ -173,11 +177,12 @@ export default function TVClient() {
     setAudioEnabled(true);
   }
 
-  // Separar pendientes y confirmados recientes
+  // Separar
   const pendientes = notificaciones.filter((n) => !n.confirmado_at);
-  const confirmados = notificaciones.filter((n) => n.confirmado_at).slice(0, 5);
+  const presentes = notificaciones.filter((n) => n.tipo === "llegada" && n.confirmado_at && !notificaciones.find((r) => r.tipo === "retiro" && r.nombre === n.nombre && r.confirmado_at));
+  const retirados = notificaciones.filter((n) => n.tipo === "retiro" && n.confirmado_at);
 
-  // ── Elegir sede ──────────────────────────────────────────
+  // ── Elegir sede ─────────────────────────────────────────
   if (!sede) {
     return <SedeSelector onSelect={selectSede} />;
   }
@@ -208,11 +213,11 @@ export default function TVClient() {
     );
   }
 
-  // ── Vista TV principal ──────────────────────────────────
+  // ── Vista TV principal: León al centro, niños a los lados ──
   return (
-    <div className="flex min-h-screen flex-col px-8 py-6">
+    <div className="flex min-h-screen flex-col px-6 py-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <img src="/leon_logo_512.png" alt="Play & Group" className="w-10 h-10" />
           <div>
@@ -229,81 +234,122 @@ export default function TVClient() {
         </div>
       </div>
 
-      {/* Contenido principal */}
-      {pendientes.length === 0 && confirmados.length === 0 ? (
-        /* Nada — pantalla de espera */
-        <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <img src="/leon_logo_512.png" alt="Play & Group" className="w-32 h-32 mx-auto mb-6 animate-float-slow" />
-          <h1 className="text-4xl font-black text-white/90">Play & Group</h1>
-          <p className="text-xl text-white/50 mt-2">Bienvenidos 🌟</p>
+      {/* Contenido: 3 columnas — Presentes | León | Pendientes/Retiros */}
+      <div className="flex-1 flex items-stretch gap-4">
+
+        {/* ═══ Columna izquierda: Niños presentes (en Play) ═══ */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/50">
+              En Play ({presentes.length})
+            </span>
+          </div>
+          <div className="flex-1 space-y-2 overflow-auto">
+            {presentes.length === 0 ? (
+              <div className="rounded-2xl bg-white/10 px-4 py-6 text-center">
+                <p className="text-sm text-white/30">Sin niños aún</p>
+              </div>
+            ) : (
+              presentes.map((n) => (
+                <div key={n.id} className="rounded-2xl bg-white/90 backdrop-blur px-4 py-3 shadow-md border border-emerald-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🧒</span>
+                    <span className="text-sm font-black text-gray-800 flex-1">{n.nombre}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[10px] text-emerald-600 font-semibold">
+                      📥 Llegó {formatHora(n.created_at)}
+                    </span>
+                    {n.confirmado_por && (
+                      <span className="text-[10px] text-gray-400">• {n.confirmado_por}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="flex-1 flex flex-col gap-6">
-          {/* ═══ PENDIENTES (nombres grandes, los papás ven esto) ═══ */}
-          {pendientes.length > 0 && (
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-3">
-                🔔 En proceso
+
+        {/* ═══ Centro: León mascota + notificaciones pendientes ═══ */}
+        <div className="flex flex-col items-center justify-center w-72 shrink-0">
+          {pendientes.length === 0 ? (
+            /* Sin pendientes — león tranquilo */
+            <div className="text-center">
+              <img src="/leon_logo_512.png" alt="Play & Group" className="w-32 h-32 mx-auto animate-float-slow" />
+              <h2 className="text-xl font-black text-white/80 mt-4">Play & Group</h2>
+              <p className="text-sm text-white/40 mt-1">{sedeNombre}</p>
+            </div>
+          ) : (
+            /* Pendientes: león alerta + cards de aviso */
+            <div className="text-center w-full">
+              <img src="/leon_logo_512.png" alt="Play & Group" className="w-20 h-20 mx-auto animate-bounce mb-3" />
+              <p className="text-xs font-bold uppercase tracking-widest text-yellow-300 mb-3">
+                🔔 {pendientes.length} {pendientes.length === 1 ? "aviso" : "avisos"}
               </p>
-              <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-2">
                 {pendientes.map((n) => (
                   <div
                     key={n.id}
-                    className={`rounded-3xl p-6 shadow-xl flex items-center gap-5 animate-slide-up
+                    className={`rounded-2xl p-4 shadow-xl text-center animate-pulse-glow
                       ${n.tipo === "llegada"
                         ? "bg-white/95 border-2 border-purple-200"
                         : "bg-white/95 border-2 border-orange-200"}`}
                   >
-                    <span className="text-5xl shrink-0">
-                      {n.tipo === "llegada" ? "🧸" : "👋"}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[11px] font-black uppercase tracking-wider mb-1
-                        ${n.tipo === "llegada" ? "text-purple-400" : "text-orange-400"}`}>
-                        {n.tipo === "llegada" ? "Bienvenido/a" : "Ya vamos por ti"}
-                      </p>
-                      <h2 className="text-4xl font-black text-gray-800 truncate">{n.nombre}</h2>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-lg text-gray-400 font-semibold">
-                        {new Date(n.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                      <p className="text-xs font-bold text-amber-500 mt-1 animate-pulse">
-                        {n.tipo === "llegada" ? "Tía va a recepción" : "Lo llevan a recepción"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ═══ CONFIRMADOS RECIENTES (más chico, feedback positivo) ═══ */}
-          {confirmados.length > 0 && (
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
-                ✅ Listos
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {confirmados.map((n) => (
-                  <div
-                    key={n.id}
-                    className="rounded-2xl bg-emerald-50/90 border border-emerald-200/50 px-4 py-3 flex items-center gap-3"
-                  >
-                    <span className="text-lg">✅</span>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-sm font-bold text-gray-700 block truncate">{n.nombre}</span>
-                      <span className="text-[10px] text-emerald-500 font-semibold">
-                        {n.confirmado_por || "Listo"}
-                      </span>
-                    </div>
+                    <p className={`text-[10px] font-black uppercase tracking-wider
+                      ${n.tipo === "llegada" ? "text-purple-400" : "text-orange-400"}`}>
+                      {n.tipo === "llegada" ? "🧸 Bienvenido/a" : "👋 Ya vamos"}
+                    </p>
+                    <h3 className="text-2xl font-black text-gray-800 mt-1">{n.nombre}</h3>
+                    <p className="text-[10px] text-gray-400 mt-1">{formatHora(n.created_at)}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </div>
-      )}
+
+        {/* ═══ Columna derecha: Retirados (se fueron) ═══ */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="h-2 w-2 rounded-full bg-orange-400" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/50">
+              Retirados ({retirados.length})
+            </span>
+          </div>
+          <div className="flex-1 space-y-2 overflow-auto">
+            {retirados.length === 0 ? (
+              <div className="rounded-2xl bg-white/10 px-4 py-6 text-center">
+                <p className="text-sm text-white/30">Nadie retirado aún</p>
+              </div>
+            ) : (
+              retirados.map((n) => (
+                <div key={n.id} className="rounded-2xl bg-white/70 backdrop-blur px-4 py-3 shadow-sm border border-orange-100/50 opacity-80">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">👋</span>
+                    <span className="text-sm font-bold text-gray-600 flex-1">{n.nombre}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[10px] text-orange-500 font-semibold">
+                      📤 Salió {formatHora(n.confirmado_at!)}
+                    </span>
+                    {n.confirmado_por && (
+                      <span className="text-[10px] text-gray-400">• {n.confirmado_por}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-4 text-center">
+        <p className="text-[10px] text-white/20 font-medium">
+          📍 {sedeNombre} • Fundación ARM Global
+        </p>
+      </div>
     </div>
   );
 }
